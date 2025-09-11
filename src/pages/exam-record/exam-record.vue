@@ -1,14 +1,5 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">考试记录</text>
-        <view class="header-right">
-          <text class="filter-icon" @click="showFilterModal = true">筛选</text>
-        </view>
-      </view>
-    </view>
 
     <!-- 考试统计卡片 -->
     <view class="stats-card">
@@ -447,7 +438,7 @@ onMounted(() => {
 
 /* 统计卡片 */
 .stats-card {
-  margin: 80px 20px 20px;
+  margin: 0px 20px 20px;
   background: white;
   border-radius: 15px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);

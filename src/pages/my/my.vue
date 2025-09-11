@@ -37,6 +37,8 @@ const menuItems = ref([
   { icon: '🎯', title: '考试记录', count: 8, path: '/pages/exam-record/exam-record' },
   { icon: '📊', title: '学习统计', count: 0, path: '/pages/statistics/statistics' },
   { icon: '🎁', title: '积分商城', count: 0, path: '/pages/points-mall/points-mall' },
+  { icon: '👑', title: '会员中心', count: 0, path: '/pages/member-center/member-center' },
+  { icon: '📋', title: '我的订单', count: 0, path: '/pages/order-list/order-list' },
 ])
 
 // 跳转到错题本页面
@@ -147,6 +149,42 @@ const goToPointsMall = () => {
   })
 }
 
+// 跳转到会员中心页面
+const goToMemberCenter = () => {
+  console.log('跳转到会员中心')
+  uni.navigateTo({
+    url: '/pages/member-center/member-center',
+    success: () => {
+      console.log('会员中心页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('会员中心页面跳转失败:', err)
+      uni.showToast({
+        title: '会员中心跳转失败',
+        icon: 'error',
+      })
+    },
+  })
+}
+
+// 跳转到我的订单页面
+const goToOrderList = () => {
+  console.log('跳转到我的订单')
+  uni.navigateTo({
+    url: '/pages/order-list/order-list',
+    success: () => {
+      console.log('我的订单页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('我的订单页面跳转失败:', err)
+      uni.showToast({
+        title: '我的订单跳转失败',
+        icon: 'error',
+      })
+    },
+  })
+}
+
 // 处理菜单点击 - 根据菜单项调用对应的跳转函数
 const handleMenuClick = (item) => {
   console.log('点击菜单:', item.title)
@@ -169,6 +207,12 @@ const handleMenuClick = (item) => {
       break
     case '积分商城':
       goToPointsMall()
+      break
+    case '会员中心':
+      goToMemberCenter()
+      break
+    case '我的订单':
+      goToOrderList()
       break
     default:
       console.log('未知菜单项:', item.title)
@@ -222,16 +266,7 @@ const handleLogout = () => {
 
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">我的</text>
-        <view class="header-right">
-          <text class="settings-icon" @click="showSettings">设置</text>
-        </view>
-      </view>
-    </view>
-
+    
     <!-- 个人资料卡片 -->
     <view class="profile-card">
       <!-- 已登录状态 -->
@@ -366,6 +401,16 @@ const handleLogout = () => {
           <text class="menu-icon">🎁</text>
           <text class="menu-title">积分商城</text>
         </view>
+        <!-- 会员中心 -->
+        <view class="menu-item" @click="goToMemberCenter">
+          <text class="menu-icon">👑</text>
+          <text class="menu-title">会员中心</text>
+        </view>
+        <!-- 我的订单 -->
+        <view class="menu-item" @click="goToOrderList">
+          <text class="menu-icon">📋</text>
+          <text class="menu-title">我的订单</text>
+        </view>
       </view>
     </view>
 
@@ -484,7 +529,7 @@ const handleLogout = () => {
 
 /* 个人资料卡片 */
 .profile-card {
-  margin: 80px 20px 20px;
+  margin: 0px 20px 20px;
   background: white;
   border-radius: 15px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);

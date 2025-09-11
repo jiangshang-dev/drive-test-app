@@ -112,6 +112,48 @@
       "style": {
         "navigationBarTitleText": "交通标志图示详解"
       }
+    },
+    {
+      "path": "pages/video-player/video-player",
+      "style": {
+        "navigationBarTitleText": "视频播放"
+      }
+    },
+    {
+      "path": "pages/vip/vip",
+      "style": {
+        "navigationBarTitleText": "VIP会员"
+      }
+    },
+    {
+      "path": "pages/payment/payment",
+      "style": {
+        "navigationBarTitleText": "确认支付"
+      }
+    },
+    {
+      "path": "pages/payment-success/payment-success",
+      "style": {
+        "navigationBarTitleText": "支付成功"
+      }
+    },
+    {
+      "path": "pages/member-center/member-center",
+      "style": {
+        "navigationBarTitleText": "会员中心"
+      }
+    },
+    {
+      "path": "pages/order-list/order-list",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/order-detail/order-detail",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
     }
   ],
   "globalStyle": {

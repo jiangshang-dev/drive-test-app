@@ -346,20 +346,38 @@ const playVideo = (video) => {
     return
   }
 
-  // 这里可以实现实际的视频播放逻辑
-  uni.showModal({
-    title: '播放视频',
-    content: `正在播放: ${video.title}`,
-    showCancel: false,
-    confirmText: '确定',
+  // 跳转到视频播放页面
+  console.log('跳转到视频播放页面', video)
+  uni.navigateTo({
+    url: `/pages/video-player/video-player?id=${video.id}&title=${encodeURIComponent(video.title)}`,
+    success: () => {
+      console.log('视频播放页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('视频播放页面跳转失败:', err)
+      uni.showToast({
+        title: '跳转失败',
+        icon: 'error',
+      })
+    },
   })
 }
 
 const upgradeToVip = () => {
-  // 跳转到VIP购买页面或调用支付接口
-  uni.showToast({
-    title: 'VIP开通功能开发中',
-    icon: 'none',
+  // 跳转到VIP页面
+  console.log('跳转到VIP会员页面')
+  uni.navigateTo({
+    url: '/pages/vip/vip',
+    success: () => {
+      console.log('VIP页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('VIP页面跳转失败:', err)
+      uni.showToast({
+        title: '跳转失败',
+        icon: 'error'
+      })
+    }
   })
   showVipModal.value = false
 }
