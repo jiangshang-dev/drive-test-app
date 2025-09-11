@@ -1,14 +1,5 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="back-btn" @click="goBack">‹</text>
-        <text class="logo">订单详情</text>
-        <text class="header-right"></text>
-      </view>
-    </view>
-
     <!-- 订单状态 -->
     <view class="status-section">
       <view class="status-content">
@@ -320,17 +311,17 @@ onMounted(() => {
 
   // 解析订单信息
   orderInfo.value = {
-    orderId: options.orderId || '',
-    productName: options.productName || 'VIP会员',
-    productDesc: options.productDesc || 'VIP会员套餐',
+    orderId: decodeURIComponent(options.orderId || ''),
+    productName: decodeURIComponent(options.productName || 'VIP会员'),
+    productDesc: decodeURIComponent(options.productDesc || 'VIP会员套餐'),
     price: parseFloat(options.price || '0'),
     actualPrice: parseFloat(options.actualPrice || options.price || '0'),
     discount: parseFloat(options.discount || '0'),
-    status: options.status || 'completed',
-    statusText: options.statusText || '已完成',
-    paymentMethod: options.paymentMethod || '微信支付',
-    createTime: options.createTime || new Date().toISOString(),
-    payTime: options.payTime || ''
+    status: decodeURIComponent(options.status || 'completed'),
+    statusText: decodeURIComponent(options.statusText || '已完成'),
+    paymentMethod: decodeURIComponent(options.paymentMethod || '微信支付'),
+    createTime: options.createTime ? decodeURIComponent(options.createTime) : new Date().toISOString(),
+    payTime: options.payTime ? decodeURIComponent(options.payTime) : ''
   }
 
   // 更新订单步骤
@@ -389,7 +380,7 @@ onMounted(() => {
 /* 订单状态 */
 .status-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin-top: 65px;
+  margin-top: 0px;
   padding: 30px 20px;
   color: white;
 }

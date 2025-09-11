@@ -20,7 +20,7 @@ const studyStats = ref({
 
 // 计算VIP状态
 const isVipUser = computed(() => {
-  return memberStore.profile?.vipLevel > 0
+  return memberStore.profile && memberStore.profile.vipLevel > 0
 })
 
 // 学习统计数据
@@ -186,7 +186,7 @@ const goToOrderList = () => {
 }
 
 // 处理菜单点击 - 根据菜单项调用对应的跳转函数
-const handleMenuClick = (item) => {
+const handleMenuClick = (item: any) => {
   console.log('点击菜单:', item.title)
 
   switch (item.title) {
@@ -276,20 +276,20 @@ const handleLogout = () => {
             class="avatar"
             mode="aspectFill"
             :src="
-              memberStore.profile.avatar ||
+              (memberStore.profile && memberStore.profile.avatar) ||
               'https://via.placeholder.com/80x80/667eea/white?text=头像'
             "
           />
           <view class="user-details">
-            <text class="nickname">{{
-              memberStore.profile.nickname || memberStore.profile.account || '驾考学员'
+            <text class="nickname">{{ 
+              (memberStore.profile && memberStore.profile.nickname) || (memberStore.profile && memberStore.profile.account) || '驾考学员'
             }}</text>
             <view class="user-level">
               <text v-if="isVipUser" class="vip-badge">VIP会员</text>
               <text v-else class="normal-badge">普通用户</text>
-              <text class="level-text">学习等级 Lv.{{ memberStore.profile.level || 1 }}</text>
+              <text class="level-text">学习等级 Lv.{{ (memberStore.profile && memberStore.profile.level) || 1 }}</text>
             </view>
-            <text class="phone">{{ memberStore.profile.mobile || '未绑定手机' }}</text>
+            <text class="phone">{{ (memberStore.profile && memberStore.profile.mobile) || '未绑定手机' }}</text>
           </view>
         </view>
         <!-- VIP升级按钮 -->

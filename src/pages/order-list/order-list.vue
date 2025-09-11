@@ -163,20 +163,20 @@ const switchTab = (index: number) => {
 const goToOrderDetail = (order: any) => {
   console.log('查看订单详情:', order)
   // 跳转到订单详情页面，传递订单信息
-  const orderParams = new URLSearchParams({
-    orderId: order.orderId,
-    productName: order.productName,
-    productDesc: order.productDesc,
-    price: order.price.toString(),
-    status: order.status,
-    statusText: order.statusText,
-    paymentMethod: order.paymentMethod,
-    createTime: order.createTime.toISOString(),
-    payTime: order.payTime ? order.payTime.toISOString() : ''
-  }).toString()
+  const params = [
+    `orderId=${encodeURIComponent(order.orderId)}`,
+    `productName=${encodeURIComponent(order.productName)}`,
+    `productDesc=${encodeURIComponent(order.productDesc)}`,
+    `price=${encodeURIComponent(order.price.toString())}`,
+    `status=${encodeURIComponent(order.status)}`,
+    `statusText=${encodeURIComponent(order.statusText)}`,
+    `paymentMethod=${encodeURIComponent(order.paymentMethod)}`,
+    `createTime=${encodeURIComponent(order.createTime.toISOString())}`,
+    `payTime=${order.payTime ? encodeURIComponent(order.payTime.toISOString()) : ''}`
+  ].join('&')
 
   uni.navigateTo({
-    url: `/pages/order-detail/order-detail?${orderParams}`,
+    url: `/pages/order-detail/order-detail?${params}`,
     success: () => {
       console.log('跳转到订单详情页面成功')
     },
@@ -194,6 +194,10 @@ const handleAction = (action: any, order: any) => {
   console.log('执行操作:', action.action, order)
 
   switch (action.action) {
+    case 'detail':
+      // 跳转到订单详情页面
+      goToOrderDetail(order)
+      break
     case 'pay':
       // 跳转到支付页面
       uni.navigateTo({

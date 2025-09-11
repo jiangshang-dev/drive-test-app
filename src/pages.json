@@ -154,6 +154,13 @@
       "style": {
         "navigationBarTitleText": "订单详情"
       }
+    },
+    {
+      "path": "pages/question-detail/question-detail",
+      "style": {
+        "navigationBarTitleText": "题目详情",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

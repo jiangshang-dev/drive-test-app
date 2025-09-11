@@ -526,6 +526,7 @@ onUnmounted(() => {
 
 .video-stats {
   display: flex;
+  align-items: center;
   gap: 15px;
 }
 
@@ -682,6 +683,9 @@ onUnmounted(() => {
   height: 40px;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .send-btn:disabled {

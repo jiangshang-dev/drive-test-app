@@ -223,9 +223,8 @@ const selectTimeFilter = (filter) => {
 }
 
 const viewQuestion = (question) => {
-  uni.showToast({
-    title: '查看题目详情',
-    icon: 'none',
+  uni.navigateTo({
+    url: `/pages/question-detail/question-detail?questionId=${question.questionId}&subject=${question.subject}`
   })
 }
 

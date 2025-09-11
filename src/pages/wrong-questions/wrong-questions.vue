@@ -150,7 +150,7 @@ const switchTab = (index: number) => {
 
 // 获取状态文本
 const getStatusText = (status: string) => {
-  const statusMap = {
+  const statusMap: { [key: string]: string } = {
     unreviewed: '未复习',
     reviewing: '复习中',
     mastered: '已掌握',
@@ -168,11 +168,11 @@ const formatDate = (date: Date) => {
 
 // 复习错题
 const reviewQuestion = (question: any) => {
-  uni.showToast({
-    title: '跳转到题目详情',
-    icon: 'none',
+  // 跳转到题目详情页面，传递题目ID和科目信息
+  const subject = question.subject === 'subject1' ? '1' : '4'
+  uni.navigateTo({
+    url: `/pages/question-detail/question-detail?questionId=${question.id}&subject=${subject}`
   })
-  // TODO: 跳转到题目详情页面
 }
 
 // 清空错题
@@ -199,118 +199,260 @@ const clearWrongQuestions = () => {
 </script>
 
 <style lang="scss" scoped>
-
-/* 继承首页基础样式，添加特定样式 */
-.clear-icon {
-  font-size: 28rpx;
-  padding: 8rpx 16rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 20rpx;
+/* 基础容器样式 */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
 }
 
+/* 顶部导航栏样式 */
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20rpx 0 30rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.3);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30rpx;
+}
+
+.logo {
+  font-size: 36rpx;
+  font-weight: bold;
+  letter-spacing: 2rpx;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.clear-icon {
+  font-size: 26rpx;
+  padding: 12rpx 20rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 25rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10rpx);
+}
+
+.clear-icon:active {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0.95);
+}
+
+/* 主要内容区域 */
+.main-content {
+  padding: 30rpx;
+  padding-bottom: 100rpx;
+}
+
+/* 统计卡片样式 */
 .stats-card {
-  background: white;
-  border-radius: 30rpx;
-  padding: 40rpx;
-  margin-bottom: 40rpx;
-  box-shadow: 0 4rpx 30rpx rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 24rpx;
+  padding: 40rpx 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid rgba(102, 126, 234, 0.1);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20rpx;
+  gap: 30rpx;
 }
 
 .stat-item {
   text-align: center;
-  padding: 20rpx;
-  background: #f8f9fa;
+  padding: 30rpx 20rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  border: 1rpx solid rgba(102, 126, 234, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-item:active {
+  transform: translateY(-4rpx);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
 }
 
 .stat-number {
   display: block;
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: bold;
-  color: #667eea;
-  margin-bottom: 8rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12rpx;
 }
 
 .stat-label {
   font-size: 24rpx;
   color: #666;
+  font-weight: 500;
 }
 
+/* 科目分类标签样式 */
+.subject-tabs {
+  display: flex;
+  background: white;
+  border-radius: 20rpx;
+  padding: 8rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  border: 1rpx solid rgba(102, 126, 234, 0.1);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 16rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #666;
+  border-radius: 16rpx;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.4);
+}
+
+.tab-item:not(.active):active {
+  background: #f8f9fa;
+  color: #667eea;
+}
+
+/* 错题列表样式 */
 .question-list {
-  margin-top: 40rpx;
+  margin-top: 20rpx;
 }
 
 .question-card {
-  background: white;
-  border-radius: 24rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #fcfcfc 100%);
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 28rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid rgba(102, 126, 234, 0.08);
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.question-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6rpx;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
 }
 
 .question-card:active {
-  transform: translateY(-4rpx);
-  box-shadow: 0 12rpx 40rpx rgba(0, 0, 0, 0.12);
+  transform: translateY(-6rpx);
+  box-shadow: 0 12rpx 40rpx rgba(102, 126, 234, 0.15);
 }
 
 .question-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
+  padding-left: 12rpx;
 }
 
 .question-number {
   font-size: 28rpx;
   font-weight: 600;
   color: #333;
+  position: relative;
+}
+
+.question-status {
+  display: flex;
+  align-items: center;
 }
 
 .status-badge {
-  font-size: 20rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 12rpx;
-  font-weight: bold;
+  font-size: 22rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 
   &.unreviewed {
-    background: #fff3cd;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
     color: #856404;
+    border: 1rpx solid #ffd93d;
   }
 
   &.reviewing {
-    background: #d1ecf1;
+    background: linear-gradient(135deg, #d1ecf1 0%, #74b9ff 100%);
     color: #0c5460;
+    border: 1rpx solid #00b894;
   }
 
   &.mastered {
-    background: #d4edda;
+    background: linear-gradient(135deg, #d4edda 0%, #00b894 100%);
     color: #155724;
+    border: 1rpx solid #00b894;
   }
 }
 
+.question-content {
+  padding-left: 12rpx;
+  margin-bottom: 20rpx;
+}
+
 .question-text {
-  font-size: 28rpx;
-  line-height: 1.6;
+  font-size: 30rpx;
+  line-height: 1.7;
   color: #333;
   display: block;
-  margin-bottom: 15rpx;
+  margin-bottom: 20rpx;
+  font-weight: 400;
 }
 
 .question-image {
-  margin: 15rpx 0;
+  margin: 20rpx 0;
   text-align: center;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
 
   image {
-    width: 200rpx;
-    height: 150rpx;
+    width: 300rpx;
+    height: 200rpx;
     border-radius: 12rpx;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -319,40 +461,79 @@ const clearWrongQuestions = () => {
   justify-content: space-between;
   align-items: center;
   font-size: 24rpx;
-  color: #999;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
+  margin-top: 24rpx;
+  padding: 20rpx 12rpx 0;
   border-top: 1rpx solid #f0f0f0;
 }
 
 .error-count {
-  color: #f56565;
+  color: #e74c3c;
+  font-weight: 600;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(231, 76, 60, 0.2);
+}
+
+.add-time {
+  color: #95a5a6;
+  font-weight: 500;
 }
 
 /* 空状态样式 */
 .empty-state {
   text-align: center;
-  padding: 100rpx 40rpx;
+  padding: 120rpx 40rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20rpx;
+  box-shadow: 0 6rpx 28rpx rgba(0, 0, 0, 0.06);
+  border: 1rpx solid rgba(102, 126, 234, 0.08);
 }
 
 .empty-icon {
-  font-size: 120rpx;
+  font-size: 140rpx;
   display: block;
-  margin-bottom: 30rpx;
-  opacity: 0.3;
+  margin-bottom: 40rpx;
+  opacity: 0.4;
+  filter: grayscale(0.3);
 }
 
 .empty-title {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: 600;
   color: #666;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
   display: block;
 }
 
 .empty-desc {
   font-size: 28rpx;
-  color: #999;
+  color: #95a5a6;
   display: block;
+  line-height: 1.5;
+}
+
+/* 响应式适配 */
+@media screen and (max-width: 750rpx) {
+  .stats-grid {
+    gap: 20rpx;
+  }
+
+  .stat-item {
+    padding: 24rpx 16rpx;
+  }
+
+  .stat-number {
+    font-size: 36rpx;
+  }
+
+  .question-card {
+    padding: 28rpx;
+    margin-bottom: 20rpx;
+  }
+
+  .question-text {
+    font-size: 28rpx;
+  }
 }
 </style>
