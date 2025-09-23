@@ -1,9 +1,10 @@
 import { useMemberStore } from "@/stores";
 
 // const baseURL = 'http://localhost:8089'
-const baseURL = 'http://8.152.154.153:8089'
+// const baseURL = 'http://8.152.154.153:8089'
+const baseURL = 'http://localhost:8081/api'
 // const baseURL = 'https://www.codevateai.cn/prod-api'
- 
+
 // 添加拦截器
 const httpInterceptor = {
     // 拦截前触发
