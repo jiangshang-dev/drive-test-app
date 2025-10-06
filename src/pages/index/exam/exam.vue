@@ -319,6 +319,170 @@ const getData = async (subject: number) => {
   questions.value = res.data || []
   count.value = res.data?.length || 0
   userAnswers.value = new Array(res.data?.length || 0).fill('') // 初始化用户答案数组
+
+  // 清空收藏状态
+  favoriteQuestions.value.clear()
+
+  // 初始化第一题的收藏状态
+  if (questions.value.length > 0) {
+    await checkCurrentQuestionFavoriteStatus()
+  }
+}
+
+// 检查当前题目的收藏状态
+const checkCurrentQuestionFavoriteStatus = async () => {
+  // 获取用户ID
+  const userId = getUserId()
+  if (!userId) return
+
+  const currentQuestion = questions.value[currentQuestionIndex.value]
+  if (!currentQuestion) return
+
+  try {
+    const isFavorited = await checkFavorite(userId, String(currentQuestion.id))
+    if (isFavorited) {
+      favoriteQuestions.value.add(currentQuestion.id)
+    } else {
+      favoriteQuestions.value.delete(currentQuestion.id)
+    }
+  } catch (error) {
+    console.error('检查题目收藏状态失败:', error)
+  }
+}
+
+// 监听题目变化，重置答案显示和检查收藏状态
+watch(currentQuestionIndex, async () => {
+  showAnswer.value = false
+  // 切换题目时检查当前题目的收藏状态
+  await checkCurrentQuestionFavoriteStatus()
+})
+
+// 切换收藏状态
+const toggleFavorite = async () => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
+  if (!questions.value[currentQuestionIndex.value]) return
+
+  const currentQuestion = questions.value[currentQuestionIndex.value]
+  const questionId = currentQuestion.id
+  const userId = getUserId()
+
+  if (!userId) {
+    uni.showToast({
+      title: '获取用户信息失败',
+      icon: 'none',
+      duration: 1500,
+    })
+    return
+  }
+
+  try {
+    // 切换收藏状态
+    if (favoriteQuestions.value.has(questionId)) {
+      // 取消收藏
+      await saveFavoriteToServer(userId, String(questionId), false)
+      favoriteQuestions.value.delete(questionId)
+      uni.showToast({
+        title: '已取消收藏',
+        icon: 'success',
+        duration: 1500,
+      })
+    } else {
+      // 添加收藏
+      await saveFavoriteToServer(userId, String(questionId), true)
+      favoriteQuestions.value.add(questionId)
+      uni.showToast({
+        title: '收藏成功',
+        icon: 'success',
+        duration: 1500,
+      })
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+    uni.showToast({
+      title: '操作失败，请重试',
+      icon: 'none',
+      duration: 1500,
+    })
+  }
+}
+
+const checkFavorite = async (userId: string, questionId: string): Promise<boolean> => {
+  try {
+    let url =
+      '/userWrongCollectionQuestion/isCollected?userId=' + userId + '&questionId=' + questionId
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+    })
+    return res.data === true
+  } catch (error) {
+    console.error('检查收藏状态失败:', error)
+    return false
+  }
+}
+
+// 保存收藏状态到服务器
+const saveFavoriteToServer = async (userId: string, questionId: string, isFavorite: boolean) => {
+  try {
+    const url = isFavorite
+      ? '/userWrongCollectionQuestion/collect'
+      : '/userWrongCollectionQuestion/collect'
+
+    await http({
+      url: url,
+      method: 'POST',
+      data: {
+        userId: userId,
+        questionId: questionId,
+        subject: sub.value,
+      },
+    })
+  } catch (error) {
+    console.error('保存收藏状态失败:', error)
+    throw error
+  }
+}
+
+const getUserId = () => {
+  try {
+    let member = uni.getStorageSync('member')
+    // 检查 member 是否存在且不为空
+    if (!member) {
+      console.log('member is null or undefined')
+      return ''
+    }
+
+    // 如果 member 是字符串，尝试解析它
+    if (typeof member === 'string') {
+      member = member.trim()
+      if (member === '') {
+        console.log('member string is empty')
+        return ''
+      }
+      try {
+        member = JSON.parse(member)
+      } catch (e) {
+        console.error('Failed to parse member string:', e)
+        return ''
+      }
+    }
+
+    // 检查 member 对象是否包含 profile 并且 profile 有 id
+    if (member && member.profile && member.profile.id) {
+      console.log('member::', member)
+      console.log('member type::', typeof member)
+      return String(member.profile.id)
+    } else {
+      console.log('member or member.profile or member.profile.id is missing')
+      console.log('member::', member)
+      return ''
+    }
+  } catch (error) {
+    console.error('Error in getUserId:', error)
+    return ''
+  }
 }
 
 // 触摸开始
@@ -521,33 +685,6 @@ const incorrectCount = computed(() => {
     return correctAnswer !== '' && correctAnswer !== options[correctOptionIndex] ? count + 1 : count
   }, 0)
 })
-
-// 切换收藏状态
-const toggleFavorite = () => {
-  // 检查是否已登录
-  if (!checkLogin()) return
-
-  if (!questions.value[currentQuestionIndex.value]) return
-
-  const currentQuestion = questions.value[currentQuestionIndex.value]
-  const questionId = currentQuestion.id
-
-  if (favoriteQuestions.value.has(questionId)) {
-    favoriteQuestions.value.delete(questionId)
-    uni.showToast({
-      title: '已取消收藏',
-      icon: 'success',
-      duration: 1500,
-    })
-  } else {
-    favoriteQuestions.value.add(questionId)
-    uni.showToast({
-      title: '收藏成功',
-      icon: 'success',
-      duration: 1500,
-    })
-  }
-}
 
 // 计算当前题目是否已收藏
 const isFavorited = computed(() => {
