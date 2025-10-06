@@ -131,7 +131,54 @@
         <view class="modal-body">
           <view class="detail-section">
             <text class="detail-label">题目:</text>
-            <text class="detail-content">{{ questions[currentDetailIndex].question }}</text>
+            <text class="detail-content">{{ questions[currentDetailIndex].questionContent }}</text>
+          </view>
+
+          <!-- 题目选项 -->
+          <view class="detail-setion">
+            <text lass="detail-label">选项:</text>
+            <view class="options-list">
+              <view
+                class="option-item"
+                :class="{
+                  'user-selected': getUserAnswerLetter(currentDetailIndex) === 'A',
+                  'correct-option': 'A' === getCorrectAnswerLetter(currentDetailIndex),
+                }"
+              >
+                <text class="option-letter">A.</text>
+                <text class="optiontext">{{ questions[currentDetailIndex].optionA }}</text>
+              </view>
+              <view
+                class="option-item"
+                :class="{
+                  'user-selected': getUserAnswerLetter(currentDetailIndex) === 'B',
+                  'correct-option': 'B' === getCorrectAnswerLetter(currentDetailIndex),
+                }"
+              >
+                <text class="option-letter">B.</text>
+                <text class="option-text">{{ questions[currentDetailIndex].optionB }}</text>
+              </view>
+              <view
+                class="option-item"
+                :class="{
+                  'user-selected': getUserAnswerLetter(currentDetailIndex) === 'C',
+                  'correct-option': 'C' === getCorrectAnswerLetter(currentDetailIndex),
+                }"
+              >
+                <text class="option-letter">C.</text>
+                <text class="opton-text">{{ questions[currentDetailIndex].optionC }}</text>
+              </view>
+              <view
+                class="option-item"
+                :class="{
+                  'user-selected': getUserAnswerLetter(currentDetailIndex) === 'D',
+                  'correct-option': 'D' === getCorrectAnswerLetter(currentDetailIndex),
+                }"
+              >
+                <text class="option-letter">D.</text>
+                <text class="option-text">{{ questions[currentDetailIndex].optionD }}</text>
+              </view>
+            </view>
           </view>
 
           <view class="detail-section">
@@ -142,21 +189,29 @@
                 correct: userAnswers[currentDetailIndex] === correctAnswers[currentDetailIndex],
               }"
             >
-              {{ userAnswers[currentDetailIndex] || '未作答' }}
+              {{ getUserAnswerWithContent(currentDetailIndex) || '未作答' }}
             </text>
           </view>
 
           <view class="detail-section">
             <text class="detail-label">正确答案:</text>
-            <text class="detail-content correct-answer">{{
-              correctAnswers[currentDetailIndex]
-            }}</text>
+            <text class="detail-content correct-answer">
+              {{ getCorrectAnswerWithContent(currentDetailIndex) }}
+            </text>
+          </view>
+
+          <!-- 难度等级 -->
+          <view class="detail-section">
+            <text class="detail-label">难度等级:</text>
+            <text class="detail-content difficulty-level">
+              {{ getDifficultyLevelText(questions[currentDetailIndex].difficultyLevel) }}
+            </text>
           </view>
 
           <view class="detail-section explanation">
             <text class="detail-label">题目解析:</text>
             <text class="detail-content explanation-text">{{
-              questions[currentDetailIndex].explains
+              questions[currentDetailIndex].questionExplain
             }}</text>
           </view>
         </view>
@@ -175,23 +230,46 @@ import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import uniPopup from '@dcloudio/uni-ui/lib/uni-popup/uni-popup.vue'
 
-const popup = ref<InstanceType<typeof uniPopup>>()
+// 定义题目接口
+interface Question {
+  examType: string
+  questionType: string
+  questionName: string
+  questionContent: string
+  questionFormat: number
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctAnswer: string
+  questionExplain: string
+  imageUrl: string
+  video: string
+  audio: string
+  difficultyLevel: number
+  isVip: number
+  isHot: number
+  sequenceOrder: number
+  [key: string]: any // 允许其他属性
+}
+
+const popup = ref<InstanceType<typeof uniPopup> | null>(null)
 
 const score = ref(0)
 const total = ref(0)
-const questions = ref([])
-const userAnswers = ref([])
-const correctAnswers = ref([])
+const questions = ref<Question[]>([])
+const userAnswers = ref<string[]>([])
+const correctAnswers = ref<string[]>([])
 const currentPage = ref(1)
-const visibleQuestions = ref([])
+const visibleQuestions = ref<Question[]>([])
 
-const onload = (e) => {
+const onload = (e: any) => {
   console.log('onload')
 }
-const onclose = (ez) => {
+const onclose = (ez: any) => {
   // console.log("onclose: " + ez.detail);
 }
-const onerror = (ex) => {
+const onerror = (ex: any) => {
   // console.log("onerror: " + ex.detail.errCode + " message:: " + ex.detail.errMsg);
 }
 
@@ -207,14 +285,22 @@ const handlePageChange = (e: { current: number }) => {
   updateVisibleQuestions()
 }
 
-onLoad((options) => {
-  score.value = options.score
-  total.value = options.total
-  questions.value = uni.getStorageSync('questions')
-  userAnswers.value = uni.getStorageSync('userAnswers')
-  correctAnswers.value = questions.value.map((question) => {
-    const correctOptionIndex = parseInt(question.answer) - 1
-    return [question.item1, question.item2, question.item3, question.item4][correctOptionIndex]
+onLoad((options: any) => {
+  if (options) {
+    score.value = parseInt(options.score) || 0
+    total.value = parseInt(options.total) || 0
+  }
+  const storedQuestions = uni.getStorageSync('questions') || []
+  const storedUserAnswers = uni.getStorageSync('userAnswers') || []
+
+  questions.value = storedQuestions
+  userAnswers.value = storedUserAnswers
+
+  correctAnswers.value = storedQuestions.map((question: Question) => {
+    const correctOptionIndex = parseInt(question.correctAnswer) - 1
+    return [question.optionA, question.optionB, question.optionC, question.optionD][
+      correctOptionIndex
+    ]
   })
   updateVisibleQuestions()
 })
@@ -236,6 +322,66 @@ const goBack = () => {
   uni.navigateBack({
     delta: 1,
   })
+}
+
+// 获取用户答案的字母
+const getUserAnswerLetter = (index: number): string => {
+  const userAnswer = userAnswers.value[index]
+  if (!userAnswer) return ''
+
+  const question = questions.value[index]
+  if (!question) return ''
+
+  const options = [question.optionA, question.optionB, question.optionC, question.optionD]
+  const optionIndex = options.indexOf(userAnswer)
+  return optionIndex !== -1 ? String.fromCharCode(65 + optionIndex) : ''
+}
+
+// 获取正确答案的字母
+const getCorrectAnswerLetter = (index: number): string => {
+  const question = questions.value[index]
+  if (!question) return ''
+
+  const correctOptionIndex = parseInt(question.correctAnswer) - 1
+  return String.fromCharCode(65 + correctOptionIndex)
+}
+
+// 获取用户答案带内容
+const getUserAnswerWithContent = (index: number): string => {
+  const userAnswerLetter = getUserAnswerLetter(index)
+  if (!userAnswerLetter) return ''
+
+  const question = questions.value[index]
+  if (!question) return userAnswerLetter
+
+  const optionContent = question[`option${userAnswerLetter}` as keyof Question]
+  return `${userAnswerLetter}. ${optionContent}`
+}
+
+// 获取正确答案带内容
+const getCorrectAnswerWithContent = (index: number): string => {
+  const correctAnswerLetter = getCorrectAnswerLetter(index)
+  if (!correctAnswerLetter) return ''
+
+  const question = questions.value[index]
+  if (!question) return correctAnswerLetter
+
+  const optionContent = question[`option${correctAnswerLetter}` as keyof Question]
+  return `${correctAnswerLetter}. ${optionContent}`
+}
+
+// 获取难度等级文本
+const getDifficultyLevelText = (level: number): string => {
+  switch (level) {
+    case 1:
+      return '简单'
+    case 2:
+      return '中等'
+    case 3:
+      return '困难'
+    default:
+      return '未知'
+  }
 }
 </script>
 
@@ -666,6 +812,51 @@ button {
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* 题目选项样式 */
+.options-list {
+  margin-top: 10px;
+}
+
+.option-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid transparent;
+}
+
+.option-item.user-selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.option-item.correct-option {
+  background: #e8f5e8;
+  border-color: #4caf50;
+}
+
+.opt ion-letter {
+  font-weight: bold;
+  margin-right: 10px;
+  color: #667eea;
+}
+
+.option-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-content.difficulty-level {
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-weight: 500;
+  color: #666;
 }
 
 /* 响应式设计 */

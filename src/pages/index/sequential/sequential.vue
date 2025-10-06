@@ -15,7 +15,7 @@
 
     <!-- 题型筛选栏 -->
     <view class="filter-section" v-if="!showFilterModal">
-      <scroll-view scroll-x="true" class="filter-scroll">
+      <scroll-view :scroll-x="true" class="filter-scroll">
         <view class="filter-tabs">
           <view
             class="filter-tab"
@@ -69,10 +69,10 @@
       </view>
     </view>
     <!-- 题目卡片 -->
-    <view class="question-card">
+    <view class="question-card" @touchstart="touchStart" @touchend="touchEnd">
       <view class="question-header">
         <view class="header-left">
-          <text class="question-number">第 {{ currentNo }} 题</text>
+          <text class="question-number">第 {{ currentNo }} 题 / 总共 {{ questionsTotal }} 题</text>
           <text class="question-type" v-if="currentQuestionTypeName">{{
             currentQuestionTypeName
           }}</text>
@@ -85,14 +85,14 @@
       </view>
 
       <view class="question-content">
-        <text class="question-text">{{ questions[currentQuestionIndex]?.question }}</text>
+        <text class="question-text">{{ questions[currentQuestionIndex]?.questionContent }}</text>
 
-        <view v-if="questions[currentQuestionIndex]?.url != ''" class="question-image">
+        <view v-if="questions[currentQuestionIndex]?.imageUrl != ''" class="question-image">
           <image
             mode="aspectFill"
             class="question-img"
-            :src="questions[currentQuestionIndex]?.url"
-            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.url)"
+            :src="questions[currentQuestionIndex]?.imageUrl"
+            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.imageUrl)"
           />
         </view>
 
@@ -156,31 +156,17 @@
           </view>
         </view>
 
-        <view class="explanation" v-if="questions[currentQuestionIndex]?.explains">
+        <view class="explanation" v-if="questions[currentQuestionIndex]?.questionExplain">
           <text class="explanation-title">题目解析:</text>
-          <text class="explanation-text">{{ questions[currentQuestionIndex].explains }}</text>
+          <text class="explanation-text">{{
+            questions[currentQuestionIndex].questionExplain
+          }}</text>
         </view>
       </view>
     </view>
 
     <!-- 操作按钮 -->
     <view class="action-buttons">
-      <view class="btn-group">
-        <button
-          class="btn btn-outline"
-          @click="prevQuestion"
-          :disabled="currentQuestionIndex === 0"
-        >
-          上一题
-        </button>
-        <button
-          class="btn btn-primary"
-          @click="nextQuestion"
-          :disabled="currentQuestionIndex === questions.length - 1"
-        >
-          下一题
-        </button>
-      </view>
       <button class="btn btn-comment" @click="toggleCommentSection">
         {{ showCommentSection ? '隐藏评论' : '查看评论' }} ({{ commentCount }})
       </button>
@@ -272,17 +258,54 @@
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, watch } from 'vue'
 import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
+
+// 定义题型数据接口
+interface QuestionType {
+  code: string
+  name: string
+  icon: string
+}
+
+// 定义后端返回的字典类型接口
+interface DictType {
+  id: string
+  dictValue: string
+  dictLabel: string
+  [key: string]: any
+}
+
+// 定义评论数据接口
+interface Comment {
+  id: number
+  author: string
+  avatar: string
+  content: string
+  createTime: number
+  likes: number
+  isLiked: boolean
+  canDelete: boolean
+  replies: Reply[]
+}
+
+interface Reply {
+  id: number
+  author: string
+  content: string
+  createTime: number
+}
 
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets, statusBarHeight } = uni.getSystemInfoSync()
 
 // 假设问题和用户答案已经加载到questions和userAnswers中
-const questions = ref([]) // 题目列表
-const userAnswers = ref([]) // 用户的答案列表
+const questionsTotal = ref(0)
+const questions = ref<any[]>([]) // 题目列表
+const userAnswers = ref<string[]>([]) // 用户的答案列表
 const currentQuestionIndex = ref(0) // 当前题目索引
 const showAnswer = ref(false) // 是否显示答案
 const count = ref(0)
-const sub = ref(0)
+const sub = ref<{ sub: string } | any>({})
 
 // 题型筛选相关
 const showFilterModal = ref(false) // 是否显示筛选弹窗
@@ -294,8 +317,12 @@ const favoriteQuestions = ref(new Set()) // 收藏的题目ID集合
 // 评论功能相关
 const showCommentSection = ref(false) // 是否显示评论区
 const newComment = ref('') // 新评论内容
-const comments = ref([]) // 评论列表
+const comments = ref<Comment[]>([]) // 评论列表
 const sortByTime = ref(true) // 排序方式：true为按时间，false为按热度
+
+// 触摸滑动相关变量
+const touchStartX = ref(0)
+const touchEndX = ref(0)
 
 // 模拟评论数据
 const initComments = () => {
@@ -329,24 +356,42 @@ const initComments = () => {
       canDelete: true,
       replies: [],
     },
-  ]
+  ] as Comment[]
 }
 
-const questionTypes = ref([
-  // 题型列表
-  { code: 'traffic_signs', name: '交通标志', icon: '🚦' },
-  { code: 'traffic_rules', name: '交通法规', icon: '📋' },
-  { code: 'safe_driving', name: '安全行车', icon: '🚗' },
-  { code: 'emergency_handling', name: '紧急处置', icon: '🚨' },
-  { code: 'vehicle_knowledge', name: '机动车构造', icon: '🔧' },
-  { code: 'driving_skills', name: '驾驶技能', icon: '🎯' },
-  { code: 'weather_driving', name: '恶劣天气驾驶', icon: '🌧️' },
-  { code: 'penalty_regulations', name: '违法处罚', icon: '⚖️' },
+const questionTypes = ref<QuestionType[]>([
+  // 题型列表 (默认值，将在接口返回后更新)
 ])
-onLoad((options) => {
-  sub.value = options.sub
+
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
+
+onLoad((options: any) => {
+  sub.value = options?.sub || 0
   console.log('sub.value---', sub.value)
   getData(sub.value)
+  getDictType()
   initComments() // 初始化评论数据
 })
 
@@ -358,20 +403,59 @@ const currentQuestionTypeName = computed(() => {
 })
 
 const getData = async (subject: number, questionType: string = '') => {
-  let url = '/drive/driveTopicList?subject=' + subject + '&testType=order'
+  let url = '/drive/driveTopicList?subject=' + subject
   if (questionType) {
     url += '&questionType=' + questionType
   }
-  const res = await http({
+  const res: any = await http({
     url: url,
     method: 'GET',
   })
   console.log('res-', res.data)
-  questions.value = res.data // 假设API返回的数据结构包含题目列表
-  count.value = res.data.length
+  questions.value = res.data || [] // 假设API返回的数据结构包含题目列表
+  // 总数
+  questionsTotal.value = res.data.length
+  count.value = res.data?.length || 0
   userAnswers.value = [] // 重置用户答案
   currentQuestionIndex.value = 0 // 重置题目索引
   showAnswer.value = false // 隐藏答案
+}
+
+const getDictType = async () => {
+  let url = '/dict/type/getByDictName?dictCode=question_tags'
+  const res: any = await http({
+    url: url,
+    method: 'GET',
+  })
+  console.log('res-', res.data)
+
+  // 将后端返回的数据格式转换为前端需要的格式
+  if (res.data && Array.isArray(res.data)) {
+    questionTypes.value = res.data.map((item: DictType) => ({
+      code: item.dictValue,
+      name: item.dictLabel,
+      icon: getIconForType(item.dictValue), // 根据类型获取图标
+    }))
+  }
+
+  console.log('questionTypes-----', questionTypes.value)
+}
+
+// 根据题型code返回对应的图标
+const getIconForType = (type: string): string => {
+  const iconMap: Record<string, string> = {
+    traffic_signs: '🚦',
+    traffic_rules: '📋',
+    safe_driving: '🚗',
+    emergency_handling: '🚨',
+    vehicle_knowledge: '🔧',
+    driving_skills: '🎯',
+    weather_driving: '🌧️',
+    penalty_regulations: '⚖️',
+    civilized_driving: '😊', // 文明驾驶题
+    // 可以根据实际需要添加更多类型和图标
+  }
+  return iconMap[type] || '❓' // 默认图标
 }
 
 const getData2 = async (subject: number) => {
@@ -393,8 +477,35 @@ const selectQuestionTypeFromModal = async (typeCode: string) => {
 
 // 检查某个选项是否为正确答案
 const isCorrectOption = (optionIndex: number) => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   return optionIndex === correctOptionIndex
+}
+
+// 触摸开始
+const touchStart = (e: any) => {
+  touchStartX.value = e.changedTouches[0].clientX
+}
+
+// 触摸结束
+const touchEnd = (e: any) => {
+  touchEndX.value = e.changedTouches[0].clientX
+  handleSwipe()
+}
+
+// 处理滑动
+const handleSwipe = () => {
+  const deltaX = touchEndX.value - touchStartX.value
+  const MIN_SWIPE_DISTANCE = 50 // 最小滑动距离
+
+  if (Math.abs(deltaX) >= MIN_SWIPE_DISTANCE) {
+    if (deltaX > 0) {
+      // 右滑，上一题
+      prevQuestion()
+    } else {
+      // 左滑，下一题
+      nextQuestion()
+    }
+  }
 }
 
 // 切换题目
@@ -413,11 +524,14 @@ const nextQuestion = () => {
 
 // 选择选项
 const selectOption = (optionIndex: number) => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   userAnswers.value[currentQuestionIndex.value] = options[optionIndex]
   showAnswer.value = true
@@ -426,24 +540,24 @@ const selectOption = (optionIndex: number) => {
 
 // 检查答案是否正确
 const isCorrectAnswer = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   return userAnswers.value[currentQuestionIndex.value] === options[correctOptionIndex]
 })
 
 // 获取当前题目的正确答案
 const correctAnswer = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   return options[correctOptionIndex]
 })
@@ -452,10 +566,10 @@ const correctAnswer = computed(() => {
 const options = computed(() => {
   if (questions.value.length > 0) {
     return [
-      questions.value[currentQuestionIndex.value].item1,
-      questions.value[currentQuestionIndex.value].item2,
-      questions.value[currentQuestionIndex.value].item3,
-      questions.value[currentQuestionIndex.value].item4,
+      questions.value[currentQuestionIndex.value].optionA,
+      questions.value[currentQuestionIndex.value].optionB,
+      questions.value[currentQuestionIndex.value].optionC,
+      questions.value[currentQuestionIndex.value].optionD,
     ]
   }
   return []
@@ -465,10 +579,10 @@ const options = computed(() => {
 const validOptions = computed(() => {
   if (questions.value.length > 0) {
     const allOptions = [
-      questions.value[currentQuestionIndex.value].item1,
-      questions.value[currentQuestionIndex.value].item2,
-      questions.value[currentQuestionIndex.value].item3,
-      questions.value[currentQuestionIndex.value].item4,
+      questions.value[currentQuestionIndex.value].optionA,
+      questions.value[currentQuestionIndex.value].optionB,
+      questions.value[currentQuestionIndex.value].optionC,
+      questions.value[currentQuestionIndex.value].optionD,
     ]
 
     return allOptions
@@ -483,10 +597,10 @@ const optionCount = computed(() => {
   if (questions.value.length > 0) {
     const currentQuestion = questions.value[currentQuestionIndex.value]
     return [
-      currentQuestion.item1,
-      currentQuestion.item2,
-      currentQuestion.item3,
-      currentQuestion.item4,
+      currentQuestion.optionA,
+      currentQuestion.optionB,
+      currentQuestion.optionC,
+      currentQuestion.optionD,
     ].filter((option) => option !== '').length
   }
   return 0
@@ -504,10 +618,10 @@ const optionLetters = ['A', 'B', 'C', 'D']
 const userAnswerLetter = computed(() => {
   const userAnswer = userAnswers.value[currentQuestionIndex.value]
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   const userAnswerIndex = options.indexOf(userAnswer)
   return userAnswerIndex !== -1 ? optionLetters[userAnswerIndex] : ''
@@ -515,12 +629,12 @@ const userAnswerLetter = computed(() => {
 
 // 计算正确答案字母
 const correctAnswerLetter = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   return optionLetters[correctOptionIndex]
 })
 
 // 显示图片弹出层
-const showImagePopup = (index, src: string) => {
+const showImagePopup = (index: number, src: string) => {
   //调用预览图片的方法
   uni.previewImage({
     urls: [src],
@@ -533,13 +647,13 @@ watch(currentQuestionIndex, () => {
   showAnswer.value = false
 })
 
-const onload = (e) => {
+const onload = (e: any) => {
   console.log('onload')
 }
-const onclose = (ez) => {
+const onclose = (ez: any) => {
   // console.log("onclose: " + ez.detail);
 }
-const onerror = (ex) => {
+const onerror = (ex: any) => {
   // console.log("onerror: " + ex.detail.errCode + " message:: " + ex.detail.errMsg);
 }
 
@@ -553,6 +667,9 @@ const isFavorited = computed(() => {
 
 // 切换收藏状态
 const toggleFavorite = async () => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   if (questions.value.length === 0) return
 
   const currentQuestion = questions.value[currentQuestionIndex.value]
@@ -613,9 +730,12 @@ const toggleSortOrder = () => {
 
 // 发表评论
 const submitComment = async () => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   if (!newComment.value.trim()) return
 
-  const comment = {
+  const comment: Comment = {
     id: Date.now(), // 使用时间戳作为ID
     author: '我', // 实际应用中从用户信息获取
     avatar: 'https://via.placeholder.com/40x40/667eea/white?text=我',
@@ -641,7 +761,10 @@ const submitComment = async () => {
 }
 
 // 切换点赞状态
-const toggleLike = async (comment) => {
+const toggleLike = async (comment: Comment) => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   comment.isLiked = !comment.isLiked
   comment.likes += comment.isLiked ? 1 : -1
 
@@ -650,14 +773,17 @@ const toggleLike = async (comment) => {
 }
 
 // 回复评论
-const replyToComment = (comment) => {
+const replyToComment = (comment: Comment) => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   uni.showModal({
     title: '回复评论',
     editable: true,
     placeholderText: '请输入回复内容...',
-    success: (res) => {
+    success: (res: any) => {
       if (res.confirm && res.content) {
-        const reply = {
+        const reply: Reply = {
           id: Date.now(),
           author: '我',
           content: res.content.trim(),
@@ -680,11 +806,14 @@ const replyToComment = (comment) => {
 }
 
 // 删除评论
-const deleteComment = async (commentId) => {
+const deleteComment = async (commentId: number) => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   uni.showModal({
     title: '确认删除',
     content: '确定要删除这条评论吗？',
-    success: (res) => {
+    success: (res: any) => {
       if (res.confirm) {
         const index = comments.value.findIndex((c) => c.id === commentId)
         if (index > -1) {
@@ -701,7 +830,7 @@ const deleteComment = async (commentId) => {
 }
 
 // 格式化评论时间
-const formatCommentTime = (timestamp) => {
+const formatCommentTime = (timestamp: number) => {
   const now = Date.now()
   const diff = now - timestamp
   const minutes = Math.floor(diff / 60000)

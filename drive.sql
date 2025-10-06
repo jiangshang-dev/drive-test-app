@@ -59,8 +59,8 @@ CREATE TABLE `tb_user_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户信息表';
 
 -- 驾考题目表
-DROP TABLE IF EXISTS `tb_drive_question`;
-CREATE TABLE `tb_drive_question` (
+DROP TABLE IF EXISTS `ap_drive_question`;
+CREATE TABLE `ap_drive_question` (
   `id` bigint(20) NOT NULL COMMENT '题目ID，雪花算法生成',
   `subject` tinyint(4) NOT NULL COMMENT '科目：1-科目一，4-科目四',
   `question_type` varchar(64) NOT NULL DEFAULT '' COMMENT '题型代码：traffic_signs-交通标志，traffic_rules-交通法规等',

@@ -16,20 +16,31 @@
     </view>
 
     <!-- 主要内容区域 -->
-    <view class="main-content">
+    <view class="main-content" @touchstart="touchStart" @touchend="touchEnd">
       <!-- 题目卡片 -->
       <view class="question-card">
         <view class="question-header">
-          <text class="question-title">{{ questions[currentQuestionIndex]?.question }}</text>
+          <text class="question-title">{{ questions[currentQuestionIndex]?.questionContent }}</text>
         </view>
 
         <!-- 题目图片 -->
-        <view v-if="questions[currentQuestionIndex]?.url != ''" class="question-image">
+        <!--        <view v-if="questions[currentQuestionIndex]?.imageUrl != ''" class="question-image">
+
           <image
             class="question-img"
             mode="aspectFit"
-            :src="questions[currentQuestionIndex]?.url"
-            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.url)"
+            :src="questions[currentQuestionIndex].imageUrl"
+            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.imageUrl)"
+          />
+        </view>-->
+
+        <view v-if="questions[currentQuestionIndex]?.imageUrl != ''" class="question-image">
+          {{ questions[currentQuestionIndex].imageUrl }}
+          <image
+            mode="aspectFill"
+            class="question-img"
+            :src="questions[currentQuestionIndex].imageUrl"
+            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.imageUrl)"
           />
         </view>
 
@@ -75,35 +86,43 @@
           </view>
           <view class="explanation">
             <text class="explanation-title">题目解析:</text>
-            <text class="explanation-text">{{ questions[currentQuestionIndex].explains }}</text>
+            <text class="explanation-text">{{
+              questions[currentQuestionIndex].questionExplain
+            }}</text>
           </view>
         </view>
       </view>
+    </view>
 
-      <!-- 控制按钮 -->
-      <view class="control-buttons">
-        <button
-          class="control-btn prev-btn"
-          :class="{ disabled: currentQuestionIndex === 0 }"
-          :disabled="currentQuestionIndex === 0"
-          @click="prevQuestion"
-        >
-          上一题
-        </button>
-        <button
-          class="control-btn next-btn"
-          :class="{ disabled: currentQuestionIndex === questions.length - 1 }"
-          :disabled="currentQuestionIndex === questions.length - 1"
-          @click="nextQuestion"
-        >
-          下一题
-        </button>
-        <button class="control-btn submit-btn" @click="submitExam">交卷</button>
+    <!-- 底部固定行 -->
+    <view class="bottom-fixed-bar">
+      <!-- 左侧：收藏按钮和交卷按钮 -->
+      <view class="left-buttons">
+        <!-- 收藏图标 -->
+        <view class="bottom-icon favorite-icon" @click="toggleFavorite">
+          <text class="icon-text">{{ isFavorited ? '❤️' : '🤍' }}</text>
+          <text class="icon-label">收藏</text>
+        </view>
+
+        <!-- 交卷按钮 -->
+        <view class="bottom-button submit-button" @click="submitExam">
+          <text class="button-text">交卷</text>
+        </view>
       </view>
 
-      <!-- 最后一题的提交按钮 -->
-      <view v-if="currentQuestionIndex === questions.length - 1 && showAnswer" class="final-submit">
-        <button class="final-submit-btn" @click="goToSubmitPage">完成考试</button>
+      <!-- 右侧：对错数和题目进度 -->
+      <view class="right-info">
+        <view class="stats-container">
+          <view class="correct-count">
+            <text class="count-text">✓{{ correctCount }}</text>
+          </view>
+          <view class="incorrect-count">
+            <text class="count-text">✗{{ incorrectCount }}</text>
+          </view>
+          <view class="question-progress">
+            <text class="progress-text">{{ currentNo }}/{{ count }}</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -118,26 +137,70 @@
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
 
-const questions = ref([]) // 题目列表
-const userAnswers = ref([]) // 用户的答案列表
+// 定义题目接口
+interface Question {
+  id: string | number
+  questionContent: string
+  imageUrl: string
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctAnswer: string
+  questionExplain: string
+  isFavorite?: boolean
+}
+
+const questions = ref<Question[]>([]) // 题目列表
+const userAnswers = ref<string[]>([]) // 用户的答案列表
 const currentQuestionIndex = ref(0) // 当前题目索引
 const showAnswer = ref(false) // 是否显示答案
 const count = ref(0) // 题目总数
 const sub = ref(0) // 科目类型
+const favoriteQuestions = ref<Set<string | number>>(new Set()) // 收藏的题目ID集合
 
-onLoad((options) => {
-  sub.value = options.sub
+// 触摸滑动相关变量
+const touchStartX = ref(0)
+const touchEndX = ref(0)
+
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
+
+onLoad((options: any) => {
+  sub.value = options?.sub || 0
   getData(sub.value)
 })
 
-const onload = (e) => {
+const onload = (e: any) => {
   console.log('onload')
 }
-const onclose = (ez) => {
+const onclose = (ez: any) => {
   // console.log("onclose: " + ez.detail);
 }
-const onerror = (ex) => {
+const onerror = (ex: any) => {
   // console.log("onerror: " + ex.detail.errCode + " message:: " + ex.detail.errMsg);
 }
 
@@ -181,6 +244,9 @@ const isSubmitting = ref(false) // 添加一个标志位，防止多次提交
 
 // 提交考试
 const submitExam = () => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
   if (isSubmitting.value) return
   isSubmitting.value = true
 
@@ -188,19 +254,20 @@ const submitExam = () => {
   isTimerPaused.value = true
 
   // 计算总分
-  const totalScore = userAnswers.value.reduce((score, answer, index) => {
-    const correctOptionIndex = parseInt(questions.value[index].answer) - 1
+  const totalScore = userAnswers.value.reduce((score, correctAnswer, index) => {
+    if (!questions.value[index] || !correctAnswer) return score
+    const correctOptionIndex = parseInt(questions.value[index].correctAnswer) - 1
     const options = [
-      questions.value[index].item1,
-      questions.value[index].item2,
-      questions.value[index].item3,
-      questions.value[index].item4,
+      questions.value[index].optionA,
+      questions.value[index].optionB,
+      questions.value[index].optionC,
+      questions.value[index].optionD,
     ]
-    return answer === options[correctOptionIndex] ? score + 1 : score
+    return correctAnswer === options[correctOptionIndex] ? score + 1 : score
   }, 0)
 
   // 计算未做题目总数
-  const unansweredCount = userAnswers.value.filter((answer) => answer === '').length
+  const unansweredCount = userAnswers.value.filter((correctAnswer) => correctAnswer === '').length
 
   // 判断成绩是否合格
   const isPass = totalScore >= 90
@@ -214,7 +281,7 @@ const submitExam = () => {
     content: `成绩: ${totalScore}/${questions.value.length}\n${resultText}\n未做题目: ${unansweredCount}\n剩余时间: ${formattedTime.value}`,
     confirmText: '现在交卷',
     cancelText: '继续答题',
-    success: (res) => {
+    success: (res: any) => {
       if (res.confirm) {
         // 用户选择现在交卷
         clearInterval(timer!) // 清除计时器
@@ -245,13 +312,40 @@ const submitExam = () => {
 
 // 获取题目数据
 const getData = async (subject: number) => {
-  const res = await http({
-    url: '/drive/driveTopicList?subject=' + subject + '&testType=random',
+  const res: any = await http({
+    url: '/drive/examDriveQuestion?subject=' + subject,
     method: 'GET',
   })
-  questions.value = res.data
-  count.value = res.data.length
-  userAnswers.value = new Array(res.data.length).fill('') // 初始化用户答案数组
+  questions.value = res.data || []
+  count.value = res.data?.length || 0
+  userAnswers.value = new Array(res.data?.length || 0).fill('') // 初始化用户答案数组
+}
+
+// 触摸开始
+const touchStart = (e: any) => {
+  touchStartX.value = e.changedTouches[0].clientX
+}
+
+// 触摸结束
+const touchEnd = (e: any) => {
+  touchEndX.value = e.changedTouches[0].clientX
+  handleSwipe()
+}
+
+// 处理滑动
+const handleSwipe = () => {
+  const deltaX = touchEndX.value - touchStartX.value
+  const MIN_SWIPE_DISTANCE = 50 // 最小滑动距离
+
+  if (Math.abs(deltaX) >= MIN_SWIPE_DISTANCE) {
+    if (deltaX > 0) {
+      // 右滑，上一题
+      prevQuestion()
+    } else {
+      // 左滑，下一题
+      nextQuestion()
+    }
+  }
 }
 
 // 切换题目
@@ -261,6 +355,7 @@ const prevQuestion = () => {
     showAnswer.value = false
   }
 }
+
 const nextQuestion = () => {
   if (currentQuestionIndex.value < questions.value.length - 1) {
     currentQuestionIndex.value++
@@ -270,11 +365,16 @@ const nextQuestion = () => {
 
 // 选择选项
 const selectOption = (optionIndex: number) => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
+  if (!questions.value[currentQuestionIndex.value]) return
+
   const options = [
-    questions.value[currentQuestionIndex.value]?.item1,
-    questions.value[currentQuestionIndex.value]?.item2,
-    questions.value[currentQuestionIndex.value]?.item3,
-    questions.value[currentQuestionIndex.value]?.item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   userAnswers.value[currentQuestionIndex.value] = options[optionIndex]
   showAnswer.value = true
@@ -290,36 +390,38 @@ const selectOption = (optionIndex: number) => {
 
 // 检查答案是否正确
 const isCorrectAnswer = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  if (!questions.value[currentQuestionIndex.value]) return false
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   return userAnswers.value[currentQuestionIndex.value] === options[correctOptionIndex]
 })
 
 // 获取当前题目的正确答案
 const correctAnswer = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  if (!questions.value[currentQuestionIndex.value]) return ''
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   return options[correctOptionIndex]
 })
 
 // 定义 options 计算属性
 const options = computed(() => {
-  if (questions.value.length > 0) {
+  if (questions.value.length > 0 && questions.value[currentQuestionIndex.value]) {
     return [
-      questions.value[currentQuestionIndex.value].item1,
-      questions.value[currentQuestionIndex.value].item2,
-      questions.value[currentQuestionIndex.value].item3,
-      questions.value[currentQuestionIndex.value].item4,
+      questions.value[currentQuestionIndex.value].optionA,
+      questions.value[currentQuestionIndex.value].optionB,
+      questions.value[currentQuestionIndex.value].optionC,
+      questions.value[currentQuestionIndex.value].optionD,
     ]
   }
   return []
@@ -336,11 +438,12 @@ const optionLetters = ['A', 'B', 'C', 'D']
 // 计算用户的答案字母
 const userAnswerLetter = computed(() => {
   const userAnswer = userAnswers.value[currentQuestionIndex.value]
+  if (!questions.value[currentQuestionIndex.value]) return ''
   const options = [
-    questions.value[currentQuestionIndex.value].item1,
-    questions.value[currentQuestionIndex.value].item2,
-    questions.value[currentQuestionIndex.value].item3,
-    questions.value[currentQuestionIndex.value].item4,
+    questions.value[currentQuestionIndex.value].optionA,
+    questions.value[currentQuestionIndex.value].optionB,
+    questions.value[currentQuestionIndex.value].optionC,
+    questions.value[currentQuestionIndex.value].optionD,
   ]
   const userAnswerIndex = options.indexOf(userAnswer)
   return userAnswerIndex !== -1 ? optionLetters[userAnswerIndex] : ''
@@ -348,12 +451,13 @@ const userAnswerLetter = computed(() => {
 
 // 计算正确答案字母
 const correctAnswerLetter = computed(() => {
-  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].answer) - 1
+  if (!questions.value[currentQuestionIndex.value]) return ''
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
   return optionLetters[correctOptionIndex]
 })
 
 // 显示图片弹出层
-const showImagePopup = (index, src: string) => {
+const showImagePopup = (index: number, src: string) => {
   uni.previewImage({
     urls: [src],
     current: index,
@@ -363,15 +467,16 @@ const showImagePopup = (index, src: string) => {
 // 跳转到提交页面
 const goToSubmitPage = () => {
   // 计算总分
-  const totalScore = userAnswers.value.reduce((score, answer, index) => {
-    const correctOptionIndex = parseInt(questions.value[index].answer) - 1
+  const totalScore = userAnswers.value.reduce((score, correctAnswer, index) => {
+    if (!questions.value[index] || !correctAnswer) return score
+    const correctOptionIndex = parseInt(questions.value[index].correctAnswer) - 1
     const options = [
-      questions.value[index].item1,
-      questions.value[index].item2,
-      questions.value[index].item3,
-      questions.value[index].item4,
+      questions.value[index].optionA,
+      questions.value[index].optionB,
+      questions.value[index].optionC,
+      questions.value[index].optionD,
     ]
-    return answer === options[correctOptionIndex] ? score + 1 : score
+    return correctAnswer === options[correctOptionIndex] ? score + 1 : score
   }, 0)
 
   // 存储数据并跳转
@@ -385,6 +490,70 @@ const goToSubmitPage = () => {
 // 监听题目变化，重置答案显示
 watch(currentQuestionIndex, () => {
   showAnswer.value = false
+})
+
+// 计算正确题数
+const correctCount = computed(() => {
+  return userAnswers.value.reduce((count, correctAnswer, index) => {
+    if (!questions.value[index] || !correctAnswer) return count
+    const correctOptionIndex = parseInt(questions.value[index].correctAnswer) - 1
+    const options = [
+      questions.value[index].optionA,
+      questions.value[index].optionB,
+      questions.value[index].optionC,
+      questions.value[index].optionD,
+    ]
+    return correctAnswer === options[correctOptionIndex] ? count + 1 : count
+  }, 0)
+})
+
+// 计算错误题数
+const incorrectCount = computed(() => {
+  return userAnswers.value.reduce((count, correctAnswer, index) => {
+    if (!questions.value[index] || !correctAnswer) return count
+    const correctOptionIndex = parseInt(questions.value[index].correctAnswer) - 1
+    const options = [
+      questions.value[index].optionA,
+      questions.value[index].optionB,
+      questions.value[index].optionC,
+      questions.value[index].optionD,
+    ]
+    return correctAnswer !== '' && correctAnswer !== options[correctOptionIndex] ? count + 1 : count
+  }, 0)
+})
+
+// 切换收藏状态
+const toggleFavorite = () => {
+  // 检查是否已登录
+  if (!checkLogin()) return
+
+  if (!questions.value[currentQuestionIndex.value]) return
+
+  const currentQuestion = questions.value[currentQuestionIndex.value]
+  const questionId = currentQuestion.id
+
+  if (favoriteQuestions.value.has(questionId)) {
+    favoriteQuestions.value.delete(questionId)
+    uni.showToast({
+      title: '已取消收藏',
+      icon: 'success',
+      duration: 1500,
+    })
+  } else {
+    favoriteQuestions.value.add(questionId)
+    uni.showToast({
+      title: '收藏成功',
+      icon: 'success',
+      duration: 1500,
+    })
+  }
+}
+
+// 计算当前题目是否已收藏
+const isFavorited = computed(() => {
+  if (questions.value.length === 0 || !questions.value[currentQuestionIndex.value]) return false
+  const currentQuestionId = questions.value[currentQuestionIndex.value].id
+  return favoriteQuestions.value.has(currentQuestionId)
 })
 </script>
 
@@ -464,6 +633,7 @@ button {
   max-width: 960px;
   margin-left: auto;
   margin-right: auto;
+  min-height: calc(100vh - 160px);
 }
 
 /* 题目卡片 */
@@ -669,74 +839,86 @@ button {
   display: block;
 }
 
-/* 控制按钮 */
-.control-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
+/* 底部固定行 */
+.bottom-fixed-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
-.control-btn {
-  padding: 12px 20px;
-  border-radius: 25px;
+.left-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.bottom-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.icon-text {
+  font-size: 24px;
+}
+
+.icon-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.bottom-button {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
   border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
 }
 
-.prev-btn {
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  color: white;
-}
-
-.next-btn {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  color: white;
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-  color: white;
-}
-
-.control-btn:hover:not(.disabled) {
+.bottom-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
 }
 
-.control-btn.disabled {
-  background: #e0e0e0;
-  color: #999;
-  cursor: not-allowed;
-  transform: none;
+.right-info {
+  display: flex;
+  align-items: center;
 }
 
-/* 最终提交按钮 */
-.final-submit {
-  text-align: center;
-  margin: 30px 0;
+.stats-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.final-submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 15px 40px;
-  border-radius: 30px;
-  font-size: 16px;
+.correct-count .count-text {
+  color: #4caf50;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 }
 
-.final-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+.incorrect-count .count-text {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.question-progress .progress-text {
+  color: #667eea;
+  font-weight: 600;
 }
 
 /* 广告区域 */
@@ -746,6 +928,7 @@ button {
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 70px; /* 为底部固定行留出空间 */
 }
 
 /* 响应式设计 */
@@ -758,14 +941,30 @@ button {
     padding: 15px;
   }
 
-  .control-buttons {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .header-info {
     gap: 10px;
     font-size: 12px;
+  }
+
+  .bottom-fixed-bar {
+    padding: 8px 15px;
+  }
+
+  .left-buttons {
+    gap: 10px;
+  }
+
+  .bottom-button {
+    padding: 6px 15px;
+    font-size: 12px;
+  }
+
+  .stats-container {
+    gap: 10px;
+  }
+
+  .icon-label {
+    font-size: 10px;
   }
 }
 
