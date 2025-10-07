@@ -128,7 +128,12 @@ const options = computed(() => {
     questionInfo.value.optionB,
     questionInfo.value.optionC,
     questionInfo.value.optionD,
-  ].filter((item) => item && item.trim() !== '')
+  ]
+})
+
+// 过滤非空选项的计算属性
+const filteredOptions = computed(() => {
+  return options.value.filter((option) => option && option.trim() !== '')
 })
 
 const correctAnswerIndex = computed(() => {
@@ -243,75 +248,78 @@ const checkFavoriteStatus = async () => {
   }
 }
 
-const previewImage = (url: string) => {
-  uni.previewImage({
-    urls: [url],
-    current: url,
-  })
-}
-
-const startPractice = () => {
-  uni.navigateTo({
-    url: `/pages/index/sequential/sequential?sub=${questionInfo.value.subject}&startId=${questionInfo.value.questionId}`,
-  })
-}
-
-const startExam = () => {
-  uni.navigateTo({
-    url: `/pages/index/exam/exam?sub=${questionInfo.value.subject}`,
-  })
-}
-
-const viewRelatedQuestion = (question: any) => {
-  uni.redirectTo({
-    url: `/pages/question-detail/question-detail?questionId=${question.questionId}&subject=${question.subject}`,
-  })
-}
-
 // 获取题目详情
-const fetchQuestionDetail = async (questionId: string, subject: string) => {
+const fetchQuestionDetail = async (id: string, sub: string) => {
   try {
     const res: any = await http({
-      url: '/drive/driveQuestionDetail',
+      url: '/drive/getDriveQuestionById',
       method: 'GET',
       data: {
-        questionId: questionId,
+        id: id,
+        subject: sub,
       },
     })
 
-    if (res.data) {
-      questionInfo.value = res.data
-      // 获取相关题目
-      fetchRelatedQuestions(res.data.subject)
-      // 检查收藏状态
-      checkFavoriteStatus()
-    }
+    questionInfo.value = res.data
+    questionId.value = id
+    subject.value = sub
+
+    // 检查收藏状态
+    await checkFavoriteStatus()
   } catch (error) {
     console.error('获取题目详情失败:', error)
     uni.showToast({
       title: '获取题目详情失败',
       icon: 'none',
+      duration: 1500,
     })
   }
 }
 
 // 获取相关题目
-const fetchRelatedQuestions = async (subject: number) => {
+const fetchRelatedQuestions = async (sub: string) => {
   try {
     const res: any = await http({
-      url: '/drive/driveTopicList',
+      url: '/drive/getRelatedQuestions',
       method: 'GET',
       data: {
-        subject: subject,
+        subject: sub,
+        count: 5,
       },
     })
 
-    if (res.data) {
-      relatedQuestions.value = res.data.slice(0, 3)
-    }
+    relatedQuestions.value = res.data || []
   } catch (error) {
     console.error('获取相关题目失败:', error)
   }
+}
+
+// 预览图片
+const previewImage = (url: string) => {
+  uni.previewImage({
+    urls: [url],
+  })
+}
+
+// 开始练习
+const startPractice = () => {
+  uni.navigateTo({
+    url: `/pages/index/sequential/sequential?sub=${subject.value}`,
+  })
+}
+
+// 开始考试
+const startExam = () => {
+  uni.navigateTo({
+    url: `/pages/index/exam/exam?sub=${subject.value}`,
+  })
+}
+
+// 查看相关题目
+const viewRelatedQuestion = (item: any) => {
+  // 重新加载当前页面，传递新题目的ID
+  questionId.value = item.questionId
+  fetchQuestionDetail(item.questionId, subject.value)
 }
 
 // 页面加载时获取参数
