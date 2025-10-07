@@ -24,22 +24,11 @@
         </view>
 
         <!-- 题目图片 -->
-        <!--        <view v-if="questions[currentQuestionIndex]?.imageUrl != ''" class="question-image">
-
-          <image
-            class="question-img"
-            mode="aspectFit"
-            :src="questions[currentQuestionIndex].imageUrl"
-            @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.imageUrl)"
-          />
-        </view>-->
-
         <view v-if="questions[currentQuestionIndex]?.imageUrl != ''" class="question-image">
-          {{ questions[currentQuestionIndex].imageUrl }}
           <image
             mode="aspectFill"
             class="question-img"
-            :src="questions[currentQuestionIndex].imageUrl"
+            :src="questions[currentQuestionIndex]?.imageUrl"
             @click="showImagePopup(currentQuestionIndex, questions[currentQuestionIndex]?.imageUrl)"
           />
         </view>
@@ -94,10 +83,42 @@
       </view>
     </view>
 
+    <!-- 题号目录对话框 -->
+    <view class="directory-dialog" :class="{ show: showDirectory }" @click="closeDirectory">
+      <view class="directory-content" @click.stop>
+        <view class="directory-header">
+          <text class="directory-title">题目目录</text>
+          <text class="close-btn" @click="closeDirectory">×</text>
+        </view>
+        <view class="directory-grid">
+          <view
+            v-for="(question, index) in questions"
+            :key="index"
+            class="directory-item"
+            :class="{
+              current: index === currentQuestionIndex,
+              answered: userAnswers[index] !== '',
+              correct: getUserAnswerStatus(index) === 'correct',
+              incorrect: getUserAnswerStatus(index) === 'incorrect',
+            }"
+            @click="jumpToQuestion(index)"
+          >
+            {{ index + 1 }}
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 底部固定行 -->
     <view class="bottom-fixed-bar">
-      <!-- 左侧：收藏按钮和交卷按钮 -->
+      <!-- 左侧：目录按钮、收藏按钮和交卷按钮 -->
       <view class="left-buttons">
+        <!-- 目录按钮 -->
+        <view class="bottom-icon directory-icon" @click="showDirectory = true">
+          <text class="icon-text">📋</text>
+          <text class="icon-label">目录</text>
+        </view>
+
         <!-- 收藏图标 -->
         <view class="bottom-icon favorite-icon" @click="toggleFavorite">
           <text class="icon-text">{{ isFavorited ? '❤️' : '🤍' }}</text>
@@ -160,6 +181,7 @@ const showAnswer = ref(false) // 是否显示答案
 const count = ref(0) // 题目总数
 const sub = ref(0) // 科目类型
 const favoriteQuestions = ref<Set<string | number>>(new Set()) // 收藏的题目ID集合
+const showDirectory = ref(false) // 是否显示题号目录
 
 // 触摸滑动相关变量
 const touchStartX = ref(0)
@@ -692,6 +714,34 @@ const isFavorited = computed(() => {
   const currentQuestionId = questions.value[currentQuestionIndex.value].id
   return favoriteQuestions.value.has(currentQuestionId)
 })
+
+// 获取用户答题状态
+const getUserAnswerStatus = (index: number) => {
+  if (userAnswers.value[index] === '') {
+    return 'unanswered' // 未答题
+  }
+
+  const question = questions.value[index]
+  if (!question) return 'unanswered'
+
+  const correctOptionIndex = parseInt(question.correctAnswer) - 1
+  const options = [question.optionA, question.optionB, question.optionC, question.optionD]
+  const correctAnswer = options[correctOptionIndex]
+
+  return userAnswers.value[index] === correctAnswer ? 'correct' : 'incorrect'
+}
+
+// 跳转到指定题目
+const jumpToQuestion = (index: number) => {
+  currentQuestionIndex.value = index
+  showAnswer.value = false
+  showDirectory.value = false // 跳转后隐藏目录
+}
+
+// 关闭目录
+const closeDirectory = () => {
+  showDirectory.value = false
+}
 </script>
 
 <style lang="scss">
@@ -763,6 +813,113 @@ button {
   font-weight: 600;
 }
 
+/* 题号目录对话框 */
+.directory-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.directory-dialog.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.directory-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.directory-dialog.show .directory-content {
+  transform: translateY(0);
+}
+
+.directory-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.directory-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.directory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 20px;
+  max-height: calc(70vh - 70px);
+  overflow-y: auto;
+}
+
+.directory-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.directory-item:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.directory-item.current {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+  border: 2px solid white;
+}
+
+.directory-item.answered {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.directory-item.correct {
+  background: #e8f5e8;
+  color: #4caf50;
+}
+
+.directory-item.incorrect {
+  background: #ffebee;
+  color: #f44336;
+}
+
 /* 主要内容区域 */
 .main-content {
   margin-top: 80px;
@@ -803,15 +960,11 @@ button {
 }
 
 .question-img {
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 8px;
+  width: 200px;
+  height: 150px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.question-img:hover {
-  transform: scale(1.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* 选项列表 */
@@ -1102,6 +1255,17 @@ button {
 
   .icon-label {
     font-size: 10px;
+  }
+
+  .directory-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 15px;
+  }
+
+  .directory-item {
+    height: 35px;
+    font-size: 14px;
   }
 }
 

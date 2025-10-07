@@ -72,7 +72,7 @@
     <view class="question-card" @touchstart="touchStart" @touchend="touchEnd">
       <view class="question-header">
         <view class="header-left">
-          <text class="question-number">第 {{ currentNo }} 题 / 总共 {{ questionsTotal }} 题</text>
+          <text class="question-number">第 {{ currentNo }} 题</text>
           <text class="question-type" v-if="currentQuestionTypeName">{{
             currentQuestionTypeName
           }}</text>
@@ -167,6 +167,7 @@
 
     <!-- 操作按钮 -->
     <view class="action-buttons">
+      <button class="btn btn-directory" @click="showDirectory = true">题号目录</button>
       <button class="btn btn-comment" @click="toggleCommentSection">
         {{ showCommentSection ? '隐藏评论' : '查看评论' }} ({{ commentCount }})
       </button>
@@ -248,6 +249,32 @@
       </view>
     </view>
 
+    <!-- 题号目录对话框 -->
+    <view class="directory-dialog" :class="{ show: showDirectory }" @click="closeDirectory">
+      <view class="directory-content" @click.stop>
+        <view class="directory-header">
+          <text class="directory-title">题目目录</text>
+          <text class="close-btn" @click="closeDirectory">×</text>
+        </view>
+        <view class="directory-grid">
+          <view
+            v-for="(question, index) in questions"
+            :key="index"
+            class="directory-item"
+            :class="{
+              current: index === currentQuestionIndex,
+              answered: userAnswers[index] !== '',
+              correct: getUserAnswerStatus(index) === 'correct',
+              incorrect: getUserAnswerStatus(index) === 'incorrect',
+            }"
+            @click="jumpToQuestion(index)"
+          >
+            {{ index + 1 }}
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 广告位 -->
     <!-- <view class="ad-view">
             <ad adpid="1478175623" @load="onload" @close="onclose" @error="onerror"></ad>
@@ -306,6 +333,7 @@ const currentQuestionIndex = ref(0) // 当前题目索引
 const showAnswer = ref(false) // 是否显示答案
 const count = ref(0)
 const sub = ref<{ sub: string } | any>({})
+const showDirectory = ref(false) // 是否显示题号目录
 
 // 题型筛选相关
 const showFilterModal = ref(false) // 是否显示筛选弹窗
@@ -416,7 +444,7 @@ const getData = async (subject: number, questionType: string = '') => {
   // 总数
   questionsTotal.value = res.data.length
   count.value = res.data?.length || 0
-  userAnswers.value = [] // 重置用户答案
+  userAnswers.value = new Array(res.data?.length || 0).fill('') // 初始化用户答案数组
   currentQuestionIndex.value = 0 // 重置题目索引
   showAnswer.value = false // 隐藏答案
 
@@ -974,6 +1002,34 @@ const formatCommentTime = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}-${date.getDate()}`
 }
+
+// 获取用户答题状态
+const getUserAnswerStatus = (index: number) => {
+  if (userAnswers.value[index] === '') {
+    return 'unanswered' // 未答题
+  }
+
+  const question = questions.value[index]
+  if (!question) return 'unanswered'
+
+  const correctOptionIndex = parseInt(question.correctAnswer) - 1
+  const options = [question.optionA, question.optionB, question.optionC, question.optionD]
+  const correctAnswer = options[correctOptionIndex]
+
+  return userAnswers.value[index] === correctAnswer ? 'correct' : 'incorrect'
+}
+
+// 跳转到指定题目
+const jumpToQuestion = (index: number) => {
+  currentQuestionIndex.value = index
+  showAnswer.value = false
+  showDirectory.value = false // 跳转后隐藏目录
+}
+
+// 关闭目录
+const closeDirectory = () => {
+  showDirectory.value = false
+}
 </script>
 <style lang="scss" scoped>
 /* 基础样式 */
@@ -1066,7 +1122,7 @@ const formatCommentTime = (timestamp: number) => {
 
 /* 题目卡片 */
 .question-card {
-  margin: 84px 20px 20px; /* 确保在筛选栏下方 */
+  margin: 44px 20px 20px; /* 确保在筛选栏下方 */
   background: white;
   border-radius: 15px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
@@ -1774,5 +1830,158 @@ const formatCommentTime = (timestamp: number) => {
 .empty-text {
   font-size: 14px;
   display: block;
+}
+
+/* 题号目录对话框 */
+.directory-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.directory-dialog.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.directory-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.directory-dialog.show .directory-content {
+  transform: translateY(0);
+}
+
+.directory-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.directory-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.directory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 20px;
+  max-height: calc(70vh - 70px);
+  overflow-y: auto;
+}
+
+.directory-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.directory-item:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.directory-item.current {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+  border: 2px solid white;
+}
+
+.directory-item.answered {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.directory-item.correct {
+  background: #e8f5e8;
+  color: #4caf50;
+}
+
+.directory-item.incorrect {
+  background: #ffebee;
+  color: #f44336;
+}
+
+/* 按钮样式 */
+.btn-directory {
+  flex: 1;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-align: center;
+  background: #667eea;
+  color: white;
+  margin-right: 10px;
+}
+
+.btn-directory:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-directory:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .directory-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 15px;
+  }
+
+  .directory-item {
+    height: 35px;
+    font-size: 14px;
+  }
+
+  .btn-directory {
+    padding: 12px;
+    font-size: 14px;
+    margin-right: 8px;
+  }
 }
 </style>

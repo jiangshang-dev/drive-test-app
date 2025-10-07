@@ -52,12 +52,12 @@
     <view class="questions-list">
       <view
         v-for="(question, index) in filteredQuestions"
-        :key="index"
+        :key="question.id"
         class="question-card"
         @click="viewQuestion(question)"
       >
         <view class="question-header">
-          <text class="question-number">第 {{ question.questionId }} 题</text>
+          <text class="question-number">第 {{ index + 1 }} 题</text>
           <view class="question-subject">
             <text
               class="subject-tag"
@@ -69,20 +69,20 @@
         </view>
 
         <view class="question-content">
-          <text class="question-text">{{ question.question }}</text>
+          <text class="question-text">{{ question.questionContent }}</text>
 
-          <view v-if="question.url" class="question-image">
+          <view v-if="question.imageUrl" class="question-image">
             <image
               class="question-img"
-              :src="question.url"
+              :src="question.imageUrl"
               mode="aspectFit"
-              @click.stop="previewImage(question.url)"
+              @click.stop="previewImage(question.imageUrl)"
             />
           </view>
         </view>
 
         <view class="question-footer">
-          <text class="favorite-time">收藏于 {{ formatTime(question.favoriteTime) }}</text>
+          <text class="favorite-time">收藏于 {{ formatTime(question.createTime) }}</text>
           <text class="remove-favorite" @click.stop="removeFavorite(question)">取消收藏</text>
         </view>
       </view>
@@ -124,13 +124,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
+
+// 定义收藏题目接口
+interface FavoriteQuestion {
+  id: string
+  questionId: string
+  subject: number
+  questionContent: string
+  imageUrl: string
+  createTime: string
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctAnswer: string
+  questionExplain: string
+  [key: string]: any
+}
 
 // 数据状态
-const favoriteQuestions = ref([])
-const selectedSubject = ref('all')
+const favoriteQuestions = ref<FavoriteQuestion[]>([])
+const selectedSubject = ref<'all' | number>('all')
 const showFilterModal = ref(false)
 const selectedTimeFilter = ref('all')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+const hasMore = ref(true)
 
 // 时间筛选选项
 const timeFilterOptions = ref([
@@ -140,33 +165,136 @@ const timeFilterOptions = ref([
   { label: '最近三月', value: 'quarter' },
 ])
 
-// 模拟收藏数据
-const mockFavoriteQuestions = [
-  {
-    questionId: 1,
-    subject: 1,
-    question: '机动车驾驶人违法驾驶造成重大交通事故构成犯罪的，依法追究什么责任？',
-    url: '',
-    favoriteTime: Date.now() - 86400000, // 1天前
-  },
-  {
-    questionId: 15,
-    subject: 1,
-    question: '驾驶机动车在道路上违反道路交通安全法的行为，属于什么行为？',
-    url: 'https://via.placeholder.com/200x150/2196F3/white?text=题目图片',
-    favoriteTime: Date.now() - 172800000, // 2天前
-  },
-  {
-    questionId: 203,
-    subject: 4,
-    question: '夜间驾驶机动车在窄路、窄桥会车时正确的做法是什么？',
-    url: '',
-    favoriteTime: Date.now() - 259200000, // 3天前
-  },
-]
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
+
+// 获取用户ID
+const getUserId = () => {
+  try {
+    let member = uni.getStorageSync('member')
+    // 检查 member 是否存在且不为空
+    if (!member) {
+      console.log('member is null or undefined')
+      return ''
+    }
+
+    // 如果 member 是字符串，尝试解析它
+    if (typeof member === 'string') {
+      member = member.trim()
+      if (member === '') {
+        console.log('member string is empty')
+        return ''
+      }
+      try {
+        member = JSON.parse(member)
+      } catch (e) {
+        console.error('Failed to parse member string:', e)
+        return ''
+      }
+    }
+
+    // 检查 member 对象是否包含 profile 并且 profile 有 id
+    if (member && member.profile && member.profile.id) {
+      console.log('member::', member)
+      console.log('member type::', typeof member)
+      return String(member.profile.id)
+    } else {
+      console.log('member or member.profile or member.profile.id is missing')
+      console.log('member::', member)
+      return ''
+    }
+  } catch (error) {
+    console.error('Error in getUserId:', error)
+    return ''
+  }
+}
+
+onLoad((options: any) => {
+  // 检查是否已登录
+  if (checkLogin()) {
+    // 获取第一页收藏数据
+    loadFavoriteQuestions()
+  }
+})
+
+// 加载收藏题目
+const loadFavoriteQuestions = async (page = 1) => {
+  if (loading.value) return
+  if (page > 1 && !hasMore.value) return
+
+  loading.value = true
+
+  try {
+    const userId = getUserId()
+    if (!userId) {
+      checkLogin()
+      return
+    }
+
+    const res: any = await http({
+      url: '/userWrongCollectionQuestion/myCollectPage',
+      method: 'GET',
+      data: {
+        userId: userId,
+        subject: selectedSubject.value === 'all' ? '' : selectedSubject.value,
+        pageNo: page,
+        pageSize: pageSize.value,
+      },
+    })
+
+    if (res.data) {
+      if (page === 1) {
+        favoriteQuestions.value = res.data.list || []
+      } else {
+        favoriteQuestions.value = [...favoriteQuestions.value, ...(res.data.list || [])]
+      }
+
+      total.value = res.data.total || 0
+      currentPage.value = page
+      hasMore.value = favoriteQuestions.value.length < total.value
+
+      // 更新统计数据
+      updateStats()
+    }
+  } catch (error) {
+    console.error('获取收藏题目失败:', error)
+    uni.showToast({
+      title: '获取数据失败',
+      icon: 'none',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 更新统计数据
+const updateStats = () => {
+  // 这些统计将在 computed 中自动更新
+}
 
 // 统计数据
-const totalFavorites = computed(() => favoriteQuestions.value.length)
+const totalFavorites = computed(() => total.value)
 const subjectOneFavorites = computed(
   () => favoriteQuestions.value.filter((q) => q.subject === 1).length,
 )
@@ -175,17 +303,12 @@ const subjectFourFavorites = computed(
 )
 const recentFavorites = computed(() => {
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  return favoriteQuestions.value.filter((q) => q.favoriteTime > oneWeekAgo).length
+  return favoriteQuestions.value.filter((q) => new Date(q.createTime).getTime() > oneWeekAgo).length
 })
 
 // 筛选后的题目列表
 const filteredQuestions = computed(() => {
-  let filtered = favoriteQuestions.value
-
-  // 按科目筛选
-  if (selectedSubject.value !== 'all') {
-    filtered = filtered.filter((q) => q.subject === selectedSubject.value)
-  }
+  let filtered = [...favoriteQuestions.value]
 
   // 按时间筛选
   if (selectedTimeFilter.value !== 'all') {
@@ -205,41 +328,70 @@ const filteredQuestions = computed(() => {
     }
 
     if (timeLimit > 0) {
-      filtered = filtered.filter((q) => q.favoriteTime > timeLimit)
+      filtered = filtered.filter((q) => new Date(q.createTime).getTime() > timeLimit)
     }
   }
 
-  return filtered.sort((a, b) => b.favoriteTime - a.favoriteTime)
+  return filtered.sort(
+    (a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime(),
+  )
 })
 
 // 方法
-const selectSubject = (subject) => {
+const selectSubject = (subject: 'all' | number) => {
   selectedSubject.value = subject
+  // 重新加载数据
+  loadFavoriteQuestions(1)
 }
 
-const selectTimeFilter = (filter) => {
+const selectTimeFilter = (filter: string) => {
   selectedTimeFilter.value = filter
   showFilterModal.value = false
 }
 
-const viewQuestion = (question) => {
+const viewQuestion = (question: FavoriteQuestion) => {
   uni.navigateTo({
-    url: `/pages/question-detail/question-detail?questionId=${question.questionId}&subject=${question.subject}`
+    url: `/pages/question-detail/question-detail?questionId=${question.id}&subject=${question.subject}`,
   })
 }
 
-const removeFavorite = (question) => {
+const removeFavorite = async (question: FavoriteQuestion) => {
   uni.showModal({
     title: '确认操作',
     content: '确定要取消收藏这道题目吗？',
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        const index = favoriteQuestions.value.findIndex((q) => q.questionId === question.questionId)
-        if (index > -1) {
-          favoriteQuestions.value.splice(index, 1)
+        try {
+          const userId = getUserId()
+          if (!userId) {
+            checkLogin()
+            return
+          }
+
+          await http({
+            url: '/userWrongCollectionQuestion/collect',
+            method: 'POST',
+            data: {
+              userId: userId,
+              subject: question.subject,
+              questionId: question.id,
+            },
+          })
+
+          const index = favoriteQuestions.value.findIndex((q) => q.id === question.id)
+          if (index > -1) {
+            favoriteQuestions.value.splice(index, 1)
+            total.value -= 1
+            uni.showToast({
+              title: '已取消收藏',
+              icon: 'success',
+            })
+          }
+        } catch (error) {
+          console.error('取消收藏失败:', error)
           uni.showToast({
-            title: '已取消收藏',
-            icon: 'success',
+            title: '操作失败',
+            icon: 'none',
           })
         }
       }
@@ -247,14 +399,15 @@ const removeFavorite = (question) => {
   })
 }
 
-const previewImage = (url) => {
+const previewImage = (url: string) => {
   uni.previewImage({
     urls: [url],
     current: url,
   })
 }
 
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: string) => {
+  if (!timestamp) return '未知时间'
   const date = new Date(timestamp)
   const now = new Date()
   const diffTime = now.getTime() - date.getTime()
@@ -271,8 +424,23 @@ const formatTime = (timestamp) => {
   }
 }
 
+// 下拉刷新
+const onPullDownRefresh = () => {
+  loadFavoriteQuestions(1).finally(() => {
+    uni.stopPullDownRefresh()
+  })
+}
+
+// 上拉加载更多
+const onReachBottom = () => {
+  if (hasMore.value && !loading.value) {
+    loadFavoriteQuestions(currentPage.value + 1)
+  }
+}
+
+// 页面显示时刷新数据
 onMounted(() => {
-  favoriteQuestions.value = mockFavoriteQuestions
+  // 不再使用模拟数据
 })
 </script>
 
