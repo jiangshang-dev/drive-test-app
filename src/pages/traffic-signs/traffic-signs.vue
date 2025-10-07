@@ -11,38 +11,24 @@
     </view>
 
     <!-- 分类标签 -->
-    <view class="category-tabs">
-      <view
-        :class="['tab-item', selectedCategory === 'all' ? 'active' : '']"
-        @click="selectCategory('all')"
-      >
-        全部
+    <scroll-view class="category-tabs" scroll-x>
+      <view class="tabs-container">
+        <view
+          :class="['tab-item', selectedCategory === 'all' ? 'active' : '']"
+          @click="selectCategory('all')"
+        >
+          全部
+        </view>
+        <view
+          :class="['tab-item', selectedCategory === item.code ? 'active' : '']"
+          v-for="item in questionTypes"
+          :key="item.code"
+          @click="selectCategory(item.code)"
+        >
+          {{ item.name }}
+        </view>
       </view>
-      <view
-        :class="['tab-item', selectedCategory === 'warning' ? 'active' : '']"
-        @click="selectCategory('warning')"
-      >
-        警告标志
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'prohibition' ? 'active' : '']"
-        @click="selectCategory('prohibition')"
-      >
-        禁令标志
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'indication' ? 'active' : '']"
-        @click="selectCategory('indication')"
-      >
-        指示标志
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'guide' ? 'active' : '']"
-        @click="selectCategory('guide')"
-      >
-        指路标志
-      </view>
-    </view>
+    </scroll-view>
 
     <!-- 标志统计 -->
     <view class="stats-section">
@@ -63,51 +49,56 @@
     </view>
 
     <!-- 交通标志列表 -->
-    <view class="signs-list">
-      <view
-        v-for="(sign, index) in filteredSigns"
-        :key="index"
-        class="sign-card"
-        @click="showSignDetail(sign)"
-      >
-        <view class="sign-image">
-          <image class="sign-img" :src="sign.image" mode="aspectFit" />
-          <view class="category-badge" :class="sign.category">
-            {{ getCategoryName(sign.category) }}
+    <scroll-view class="signs-scroll" @scrolltolower="loadMore" scroll-y>
+      <view class="signs-list">
+        <view
+          v-for="(sign, index) in filteredSigns"
+          :key="index"
+          class="sign-card"
+          @click="showSignDetail(sign)"
+        >
+          <view class="sign-image">
+            <image class="sign-img" :src="sign.signImage" mode="aspectFit" />
+            <view class="category-badge" :class="sign.signCategory">
+              {{ getCategoryName(sign.signCategory) }}
+            </view>
+          </view>
+
+          <view class="sign-content">
+            <text class="sign-name">{{ sign.signName }}</text>
+            <text class="sign-description">{{ sign.signDesc }}</text>
+
+            <view class="sign-footer">
+              <text class="sign-code">查看次数: {{ sign.viewCount }}</text>
+              <text
+                class="favorite-btn"
+                :class="{ active: sign.isFavorite }"
+                @click.stop="toggleFavorite(sign)"
+              >
+                {{ sign.isFavorite ? '❤️' : '🤍' }}
+              </text>
+            </view>
           </view>
         </view>
 
-        <view class="sign-content">
-          <text class="sign-name">{{ sign.name }}</text>
-          <text class="sign-description">{{ sign.description }}</text>
-
-          <view class="sign-details">
-            <view class="detail-item">
-              <text class="detail-label">形状:</text>
-              <text class="detail-value">{{ sign.shape }}</text>
-            </view>
-            <view class="detail-item">
-              <text class="detail-label">颜色:</text>
-              <text class="detail-value">{{ sign.color }}</text>
-            </view>
-          </view>
-
-          <view class="sign-footer">
-            <text class="sign-code">标志代码: {{ sign.code }}</text>
-            <text
-              class="favorite-btn"
-              :class="{ active: sign.isFavorite }"
-              @click.stop="toggleFavorite(sign)"
-            >
-              {{ sign.isFavorite ? '❤️' : '🤍' }}
-            </text>
-          </view>
+        <!-- 加载更多提示 -->
+        <view class="load-more" v-if="loading">
+          <text class="load-more-icon">⏳</text>
+          <text>正在加载更多数据...</text>
+        </view>
+        <view class="load-more no-more" v-else-if="noMore && filteredSigns.length > 0">
+          <text class="load-more-icon">✅</text>
+          <text>所有数据加载完毕</text>
+        </view>
+        <view class="load-more" v-else-if="filteredSigns.length === 0 && !loading">
+          <text class="load-more-icon">📭</text>
+          <text>暂无交通标志数据</text>
         </view>
       </view>
-    </view>
+    </scroll-view>
 
     <!-- 空状态 -->
-    <view v-if="filteredSigns.length === 0" class="empty-state">
+    <view v-if="filteredSigns.length === 0 && !loading" class="empty-state">
       <text class="empty-icon">🚦</text>
       <text class="empty-title">暂无标志</text>
       <text class="empty-desc">该分类下暂时没有交通标志</text>
@@ -135,10 +126,10 @@
               class="search-item"
               @click="selectSearchResult(result)"
             >
-              <image class="search-img" :src="result.image" mode="aspectFit" />
+              <image class="search-img" :src="result.signImage" mode="aspectFit" />
               <view class="search-info">
-                <text class="search-name">{{ result.name }}</text>
-                <text class="search-desc">{{ result.description }}</text>
+                <text class="search-name">{{ result.signName }}</text>
+                <text class="search-desc">{{ result.signDesc }}</text>
               </view>
             </view>
           </view>
@@ -150,51 +141,41 @@
     <view v-if="showDetailModal" class="modal" @click="showDetailModal = false">
       <view class="modal-content detail-modal" @click.stop>
         <view class="modal-header">
-          <text class="modal-title">{{ selectedSign?.name }}</text>
+          <text class="modal-title">{{ selectedSign?.signName }}</text>
           <text class="close" @click="showDetailModal = false">&times;</text>
         </view>
         <view class="modal-body">
           <view v-if="selectedSign" class="sign-detail">
             <view class="detail-image">
-              <image class="detail-img" :src="selectedSign.image" mode="aspectFit" />
+              <image class="detail-img" :src="selectedSign.signImage" mode="aspectFit" />
             </view>
 
             <view class="detail-info">
               <view class="info-row">
                 <text class="info-label">标志名称:</text>
-                <text class="info-value">{{ selectedSign.name }}</text>
-              </view>
-              <view class="info-row">
-                <text class="info-label">标志代码:</text>
-                <text class="info-value">{{ selectedSign.code }}</text>
+                <text class="info-value">{{ selectedSign.signName }}</text>
               </view>
               <view class="info-row">
                 <text class="info-label">标志分类:</text>
-                <text class="info-value">{{ getCategoryName(selectedSign.category) }}</text>
+                <text class="info-value">{{ getCategoryName(selectedSign.signCategory) }}</text>
               </view>
               <view class="info-row">
-                <text class="info-label">形状特征:</text>
-                <text class="info-value">{{ selectedSign.shape }}</text>
+                <text class="info-label">标志类型:</text>
+                <text class="info-value">{{ selectedSign.signType }}</text>
               </view>
               <view class="info-row">
-                <text class="info-label">颜色特征:</text>
-                <text class="info-value">{{ selectedSign.color }}</text>
+                <text class="info-label">使用场景:</text>
+                <text class="info-value">{{ selectedSign.usageScene }}</text>
+              </view>
+              <view class="info-row">
+                <text class="info-label">相关法规:</text>
+                <text class="info-value">{{ selectedSign.relatedRegulations }}</text>
               </view>
             </view>
 
             <view class="detail-description">
               <text class="desc-title">详细说明</text>
-              <text class="desc-content">{{ selectedSign.detailDescription }}</text>
-            </view>
-
-            <view v-if="selectedSign.usage" class="detail-usage">
-              <text class="usage-title">使用场景</text>
-              <text class="usage-content">{{ selectedSign.usage }}</text>
-            </view>
-
-            <view v-if="selectedSign.notes" class="detail-notes">
-              <text class="notes-title">注意事项</text>
-              <text class="notes-content">{{ selectedSign.notes }}</text>
+              <text class="desc-content">{{ selectedSign.signDesc }}</text>
             </view>
           </view>
         </view>
@@ -206,153 +187,83 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
+import { onLoad } from '@dcloudio/uni-app'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
+
+// 类型定义
+interface DictType {
+  id: string
+  dictValue: string
+  dictLabel: string
+}
+
+interface SignCategory {
+  code: string
+  name: string
+  icon: string
+}
+
+interface TrafficSign {
+  id: string
+  signName: string
+  signDesc: string
+  signImage: string
+  signCategory: string
+  signType: string
+  usageScene: string
+  relatedRegulations: string
+  sortOrder: number
+  viewCount: string
+  isDeleted: number
+  gmtCreate: string
+  gmtModified: string
+  isFavorite?: boolean
+}
+
 // 数据状态
 const selectedCategory = ref('all')
 const showSearchModal = ref(false)
 const showDetailModal = ref(false)
-const selectedSign = ref(null)
+const selectedSign = ref<TrafficSign | null>(null)
 const searchKeyword = ref('')
-const searchResults = ref([])
-
-// 交通标志数据
-const trafficSigns = ref([
-  {
-    id: 1,
-    name: '注意危险',
-    code: 'W001',
-    category: 'warning',
-    shape: '等边三角形',
-    color: '黄底、黑边、黑图案',
-    description: '用以警告车辆、行人注意危险地点的标志',
-    detailDescription:
-      '注意危险标志是警告标志中最重要的一种，用于提醒驾驶员和行人前方存在危险，需要格外小心。这类标志通常设置在危险路段前方适当距离处。',
-    usage: '通常设置在急弯、陡坡、窄桥、隧道、学校、医院等危险或需要特别注意的路段前方',
-    notes: '看到此标志应立即减速慢行，提高警惕，做好应急准备',
-    image: 'https://via.placeholder.com/100x100/FFFF00/000000?text=⚠️',
-    isFavorite: false,
-  },
-  {
-    id: 2,
-    name: '注意儿童',
-    code: 'W002',
-    category: 'warning',
-    shape: '等边三角形',
-    color: '黄底、黑边、黑图案',
-    description: '用以警告车辆驾驶人注意前方有儿童活动',
-    detailDescription:
-      '此标志设置在小学、幼儿园、少年宫、儿童游乐场等儿童经常出入的场所前方道路上，提醒驾驶员注意儿童安全。',
-    usage: '学校区域、幼儿园附近、居民区内儿童活动频繁的道路',
-    notes: '遇到此标志应减速慢行，注意观察，随时准备避让儿童',
-    image: 'https://via.placeholder.com/100x100/FFFF00/000000?text=👶',
-    isFavorite: false,
-  },
-  {
-    id: 3,
-    name: '禁止通行',
-    code: 'P001',
-    category: 'prohibition',
-    shape: '圆形',
-    color: '白底、红圈、红斜杠',
-    description: '表示禁止一切车辆和行人通行',
-    detailDescription: '禁止通行标志表示禁止一切车辆和行人通行。此标志设在禁止通行的道路入口处。',
-    usage: '道路施工区域、危险路段、私人道路等禁止通行的区域入口',
-    notes: '此标志具有强制性，违反者将面临法律责任',
-    image: 'https://via.placeholder.com/100x100/FFFFFF/FF0000?text=⊘',
-    isFavorite: false,
-  },
-  {
-    id: 4,
-    name: '禁止机动车通行',
-    code: 'P002',
-    category: 'prohibition',
-    shape: '圆形',
-    color: '白底、红圈、黑图案',
-    description: '表示禁止各类机动车通行',
-    detailDescription:
-      '禁止机动车通行标志表示禁止各类机动车通行，但不包括非机动车。此标志设在禁止机动车通行的道路入口处。',
-    usage: '步行街、非机动车道、特定时段的道路等',
-    notes: '机动车包括汽车、摩托车等，但允许非机动车和行人通行',
-    image: 'https://via.placeholder.com/100x100/FFFFFF/FF0000?text=🚗',
-    isFavorite: true,
-  },
-  {
-    id: 5,
-    name: '直行',
-    code: 'I001',
-    category: 'indication',
-    shape: '圆形',
-    color: '蓝底、白图案',
-    description: '表示只准一切车辆直行',
-    detailDescription: '直行标志表示只准一切车辆直行。此标志设在直行的道路上。',
-    usage: '单行道、特定路段需要强制直行的道路',
-    notes: '车辆必须直行，不得左转或右转',
-    image: 'https://via.placeholder.com/100x100/0066FF/FFFFFF?text=↑',
-    isFavorite: false,
-  },
-  {
-    id: 6,
-    name: '向左转弯',
-    code: 'I002',
-    category: 'indication',
-    shape: '圆形',
-    color: '蓝底、白图案',
-    description: '表示只准一切车辆向左转弯',
-    detailDescription:
-      '向左转弯标志表示只准一切车辆向左转弯。此标志设在车辆必须向左转弯的路口以前适当位置。',
-    usage: '单行道路口、特定的转弯要求路段',
-    notes: '车辆只能向左转弯，不得直行或右转',
-    image: 'https://via.placeholder.com/100x100/0066FF/FFFFFF?text=←',
-    isFavorite: false,
-  },
-  {
-    id: 7,
-    name: '地名',
-    code: 'G001',
-    category: 'guide',
-    shape: '矩形',
-    color: '蓝底、白字',
-    description: '用以指示前方所到达的地点',
-    detailDescription:
-      '地名标志用以指示前方所到达的地点，包括城市、县城、乡镇等地名信息，帮助驾驶员确定行驶方向。',
-    usage: '高速公路、国道、省道等主要道路上',
-    notes: '注意观察地名信息，提前选择正确的行驶路线',
-    image: 'https://via.placeholder.com/120x60/0066FF/FFFFFF?text=北京',
-    isFavorite: false,
-  },
-  {
-    id: 8,
-    name: '注意信号灯',
-    code: 'W003',
-    category: 'warning',
-    shape: '等边三角形',
-    color: '黄底、黑边、黑图案',
-    description: '用以警告车辆驾驶人注意前方路段设有信号灯',
-    detailDescription: '此标志用于警告驾驶员前方设有交通信号灯，需要根据信号灯指示通行。',
-    usage: '接近交通信号灯控制的交叉路口前方',
-    notes: '提前减速，观察信号灯，按照信号灯指示通行',
-    image: 'https://via.placeholder.com/100x100/FFFF00/000000?text=🚦',
-    isFavorite: false,
-  },
-])
+const searchResults = ref<TrafficSign[]>([])
+const questionTypes = ref<SignCategory[]>([{ code: 'all', name: '全部', icon: '' }])
+const trafficSigns = ref<TrafficSign[]>([])
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const loading = ref(false)
+const noMore = ref(false)
 
 // 计算属性
-const totalSigns = computed(() => trafficSigns.value.length)
+const totalSigns = computed(() => total.value)
 const favoriteCount = computed(() => trafficSigns.value.filter((sign) => sign.isFavorite).length)
 
 const filteredSigns = computed(() => {
-  if (selectedCategory.value === 'all') {
-    return trafficSigns.value
-  }
-  return trafficSigns.value.filter((sign) => sign.category === selectedCategory.value)
+  return trafficSigns.value
 })
 
 // 方法
-const selectCategory = (category) => {
+const selectCategory = (category: string) => {
   selectedCategory.value = category
+  // 重置分页参数
+  currentPage.value = 1
+  trafficSigns.value = []
+  noMore.value = false
+  // 获取该分类下的数据
+  loadTrafficSigns()
 }
 
-const getCategoryName = (category) => {
-  const categoryMap = {
+const getCategoryName = (category: string) => {
+  // 先从接口获取的分类数据中查找
+  const categoryItem = questionTypes.value.find((item) => item.code === category)
+  if (categoryItem) {
+    return categoryItem.name
+  }
+
+  // 如果没找到，使用默认映射
+  const categoryMap: Record<string, string> = {
     warning: '警告标志',
     prohibition: '禁令标志',
     indication: '指示标志',
@@ -361,12 +272,23 @@ const getCategoryName = (category) => {
   return categoryMap[category] || '未知分类'
 }
 
-const showSignDetail = (sign) => {
+// 根据类型获取图标
+const getIconForType = (type: string) => {
+  const iconMap: Record<string, string> = {
+    warning: '⚠️',
+    prohibition: '🚫',
+    indication: 'ℹ️',
+    guide: '🛣️',
+  }
+  return iconMap[type] || '📁'
+}
+
+const showSignDetail = (sign: TrafficSign) => {
   selectedSign.value = sign
   showDetailModal.value = true
 }
 
-const toggleFavorite = (sign) => {
+const toggleFavorite = (sign: TrafficSign) => {
   sign.isFavorite = !sign.isFavorite
   uni.showToast({
     title: sign.isFavorite ? '已收藏' : '已取消收藏',
@@ -383,13 +305,12 @@ const handleSearch = () => {
   const keyword = searchKeyword.value.toLowerCase()
   searchResults.value = trafficSigns.value.filter(
     (sign) =>
-      sign.name.toLowerCase().includes(keyword) ||
-      sign.description.toLowerCase().includes(keyword) ||
-      sign.code.toLowerCase().includes(keyword),
+      sign.signName.toLowerCase().includes(keyword) ||
+      sign.signDesc.toLowerCase().includes(keyword),
   )
 }
 
-const selectSearchResult = (sign) => {
+const selectSearchResult = (sign: TrafficSign) => {
   showSearchModal.value = false
   searchKeyword.value = ''
   searchResults.value = []
@@ -398,7 +319,129 @@ const selectSearchResult = (sign) => {
 
 onMounted(() => {
   // 初始化数据
+  // 获取分类数据
+  getDictType()
+  // 加载默认数据
+  loadTrafficSigns()
 })
+
+// 获取标志分类列表
+const getDictType = async () => {
+  try {
+    let url = '/dict/type/getByDictName?dictCode=traffic_logo'
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+    })
+    console.log('res-', res.data)
+
+    // 将后端返回的数据格式转换为前端需要的格式
+    if (res.data && Array.isArray(res.data)) {
+      questionTypes.value = res.data.map((item: DictType) => ({
+        code: item.id,
+        name: item.dictLabel,
+        icon: getIconForType(item.dictValue), // 根据类型获取图标
+      }))
+    } else {
+      // 如果没有获取到数据，使用默认分类
+      questionTypes.value = [
+        { code: 'all', name: '全部', icon: '📁' },
+        { code: 'warning', name: '警告标志', icon: '⚠️' },
+        { code: 'prohibition', name: '禁令标志', icon: '🚫' },
+        { code: 'indication', name: '指示标志', icon: 'ℹ️' },
+        { code: 'guide', name: '指路标志', icon: '🛣️' },
+      ]
+    }
+
+    console.log('questionTypes-----', questionTypes.value)
+  } catch (error) {
+    console.error('获取标志分类失败:', error)
+    // 出错时使用默认分类
+    questionTypes.value = [
+      { code: 'all', name: '全部', icon: '📁' },
+      { code: 'warning', name: '警告标志', icon: '⚠️' },
+      { code: 'prohibition', name: '禁令标志', icon: '🚫' },
+      { code: 'indication', name: '指示标志', icon: 'ℹ️' },
+      { code: 'guide', name: '指路标志', icon: '🛣️' },
+    ]
+  }
+}
+
+// 加载交通标志数据
+const loadTrafficSigns = async () => {
+  if (loading.value || noMore.value) return
+
+  loading.value = true
+
+  try {
+    // 构造查询参数
+    const params: Record<string, any> = {
+      page: currentPage.value,
+      limit: pageSize.value,
+    }
+
+    // 如果不是"全部"分类，添加分类筛选条件
+    if (selectedCategory.value !== 'all') {
+      params.signCategory = selectedCategory.value
+    }
+
+    const url = '/aptrafficsign/page'
+    console.log('请求URL:', url)
+    console.log('请求参数:', params)
+
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+      data: params,
+    })
+
+    console.log('交通标志列表响应:', res)
+
+    // 检查响应数据结构
+    if (res && res.data) {
+      // 如果是第一页，清空现有数据
+      if (currentPage.value === 1) {
+        trafficSigns.value = res.data.list || []
+      } else {
+        // 否则追加数据
+        trafficSigns.value = [...trafficSigns.value, ...(res.data.list || [])]
+      }
+
+      total.value = res.data.total || 0
+
+      // 检查是否还有更多数据
+      if (trafficSigns.value.length >= (res.data.total || 0)) {
+        noMore.value = true
+      }
+
+      console.log('当前交通标志列表:', trafficSigns.value)
+      console.log('总交通标志数:', total.value)
+      console.log('是否还有更多:', !noMore.value)
+    } else {
+      console.error('响应数据格式不正确:', res)
+      uni.showToast({
+        title: '数据格式错误',
+        icon: 'error',
+      })
+    }
+  } catch (error) {
+    console.error('获取交通标志列表失败:', error)
+    uni.showToast({
+      title: '获取数据失败',
+      icon: 'error',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 加载更多数据（分页）
+const loadMore = () => {
+  if (!loading.value && !noMore.value) {
+    currentPage.value++
+    loadTrafficSigns()
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -445,24 +488,31 @@ onMounted(() => {
 
 /* 分类标签 */
 .category-tabs {
-  display: flex;
+  white-space: nowrap;
   background: white;
-  border-radius: 24px;
-  padding: 8px;
+  padding: 8px 0;
   margin: 80px 20px 20px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+}
+
+.tabs-container {
+  display: inline-flex;
+  padding: 0 10px;
 }
 
 .tab-item {
-  flex: 1;
   text-align: center;
-  padding: 8px 6px;
+  padding: 8px 16px;
   border-radius: 16px;
   font-weight: 500;
   transition: all 0.3s ease;
   color: #666;
   font-size: 12px;
   cursor: pointer;
+  margin-right: 10px;
+  white-space: nowrap;
+  flex: 0 0 auto; /* 不放大，不缩小，自动宽度 */
 }
 
 .tab-item.active {
@@ -506,9 +556,14 @@ onMounted(() => {
   color: #666;
 }
 
-/* 标志列表 */
+/* 交通标志滚动区域 */
+.signs-scroll {
+  height: calc(100vh - 300px);
+}
+
+/* 交通标志列表 */
 .signs-list {
-  padding: 0 20px;
+  padding: 0 20px 20px;
 }
 
 .sign-card {
@@ -587,30 +642,6 @@ onMounted(() => {
   display: block;
 }
 
-.sign-details {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 12px;
-}
-
-.detail-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-label {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 4px;
-}
-
-.detail-value {
-  font-size: 12px;
-  color: #333;
-  font-weight: 500;
-}
-
 .sign-footer {
   display: flex;
   justify-content: space-between;
@@ -656,6 +687,24 @@ onMounted(() => {
 .empty-desc {
   font-size: 14px;
   display: block;
+}
+
+/* 加载更多提示 */
+.load-more {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.load-more.no-more {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.load-more-icon {
+  display: inline-block;
+  margin-right: 8px;
 }
 
 /* 模态框样式 */
@@ -725,10 +774,14 @@ onMounted(() => {
 
 .search-input input {
   width: 100%;
-  padding: 12px;
+  padding: 12px 15px; /* 调整内边距 */
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
+  height: 55px; /* 增加高度 */
+  box-sizing: border-box; /* 确保高度包含内边距和边框 */
+  line-height: 1.4; /* 行高调整 */
+  vertical-align: middle; /* 垂直居中 */
 }
 
 .search-results {
@@ -816,17 +869,13 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.detail-description,
-.detail-usage,
-.detail-notes {
+.detail-description {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 8px;
 }
 
-.desc-title,
-.usage-title,
-.notes-title {
+.desc-title {
   font-size: 14px;
   font-weight: bold;
   color: #333;
@@ -834,9 +883,7 @@ onMounted(() => {
   display: block;
 }
 
-.desc-content,
-.usage-content,
-.notes-content {
+.desc-content {
   font-size: 13px;
   color: #666;
   line-height: 1.5;
