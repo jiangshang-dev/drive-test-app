@@ -2,57 +2,48 @@
   <view class="container">
     <!-- 顶部导航栏 -->
     <view class="header">
-      <view class="header-content">
-        <view class="header-left" @click="goBack">
-          <text class="back-icon">←</text>
-          <text class="back-text">返回</text>
-        </view>
-        <text class="header-title">题目详情</text>
-        <view class="header-right">
-          <text class="favorite-btn" :class="{ active: isFavorited }" @click="toggleFavorite">
-            {{ isFavorited ? '❤️' : '🤍' }}
-          </text>
-        </view>
+      <view class="header-left" @click="goBack">
+        <text class="back-icon">←</text>
+        <text class="back-text">返回</text>
+      </view>
+      <view class="header-center">
+        <text class="title">题目详情</text>
+      </view>
+      <view class="header-right">
+        <text class="favorite-icon" :class="{ favorited: isFavorited }" @click="toggleFavorite">
+          {{ isFavorited ? '❤️' : '🤍' }}
+        </text>
       </view>
     </view>
 
-    <!-- 题目信息 -->
-    <view class="question-info">
-      <view class="question-header">
-        <text class="question-number">第 {{ questionInfo.questionId }} 题</text>
-        <view class="question-subject">
-          <text
-            class="subject-tag"
-            :class="questionInfo.subject === 1 ? 'subject-one' : 'subject-four'"
-          >
-            {{ questionInfo.subject === 1 ? '科目一' : '科目四' }}
-          </text>
-        </view>
-      </view>
+    <!-- 主要内容区域 -->
+    <view class="main-content">
+      <view class="question-card">
+        <!-- 题目内容 -->
+        <view class="question-content">
+          <text class="question-number">第{{ questionInfo.questionId || questionId }}题</text>
+          <text class="question-text">{{ questionInfo.questionContent }}</text>
 
-      <view class="question-content">
-        <text class="question-text">{{ questionInfo.question }}</text>
-
-        <!-- 题目图片 -->
-        <view v-if="questionInfo.url" class="question-image">
-          <image
-            class="question-img"
-            :src="questionInfo.url"
-            mode="aspectFit"
-            @click="previewImage(questionInfo.url)"
-          />
+          <!-- 题目图片 -->
+          <view v-if="questionInfo.imageUrl" class="question-image">
+            <image
+              :src="questionInfo.imageUrl"
+              mode="widthFix"
+              class="question-img"
+              @click="previewImage(questionInfo.imageUrl)"
+            />
+          </view>
         </view>
 
         <!-- 选项列表 -->
         <view class="options-list">
           <view
-            v-for="(option, index) in options"
+            v-for="(option, index) in filteredOptions"
             :key="index"
-            v-if="option !== ''"
             class="option-item"
             :class="{
               correct: index === correctAnswerIndex,
-              selected: selectedAnswer === index
+              selected: selectedAnswer === index,
             }"
           >
             <view class="option-label">
@@ -75,7 +66,7 @@
             </view>
             <view class="explanation">
               <text class="explanation-title">详细解析：</text>
-              <text class="explanation-text">{{ questionInfo.explains || '暂无解析' }}</text>
+              <text class="explanation-text">{{ questionInfo.questionExplain || '暂无解析' }}</text>
             </view>
           </view>
         </view>
@@ -95,7 +86,7 @@
     </view>
 
     <!-- 相关题目推荐 -->
-    <view class="related-section">
+    <view class="related-section" v-if="false">
       <view class="section-header">
         <text class="section-title">相关题目</text>
       </view>
@@ -107,7 +98,7 @@
           @click="viewRelatedQuestion(item)"
         >
           <text class="related-number">第{{ item.questionId }}题</text>
-          <text class="related-text">{{ item.question }}</text>
+          <text class="related-text">{{ item.questionContent }}</text>
           <text class="related-arrow">→</text>
         </view>
       </view>
@@ -117,115 +108,235 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
+import { onLoad } from '@dcloudio/uni-app'
 
 // 数据状态
 const questionInfo = ref<any>({})
-const isFavorited = ref(true)
+const isFavorited = ref(false)
 const selectedAnswer = ref(-1)
 const relatedQuestions = ref([])
+const questionId = ref('')
+const subject = ref('')
 
 // 计算属性
 const options = computed(() => {
   if (!questionInfo.value) return []
   return [
-    questionInfo.value.item1,
-    questionInfo.value.item2,
-    questionInfo.value.item3,
-    questionInfo.value.item4
-  ].filter(item => item && item.trim() !== '')
+    questionInfo.value.optionA,
+    questionInfo.value.optionB,
+    questionInfo.value.optionC,
+    questionInfo.value.optionD,
+  ].filter((item) => item && item.trim() !== '')
 })
 
 const correctAnswerIndex = computed(() => {
-  if (!questionInfo.value.answer) return -1
-  return parseInt(questionInfo.value.answer) - 1
+  if (!questionInfo.value.correctAnswer) return -1
+  return parseInt(questionInfo.value.correctAnswer) - 1
 })
+
+// 获取用户ID
+const getUserId = () => {
+  try {
+    const memberStore = useMemberStore()
+    if (!memberStore.profile) {
+      return ''
+    }
+    return memberStore.profile.id
+  } catch (error) {
+    console.error('获取用户ID失败:', error)
+    return ''
+  }
+}
+
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
 
 // 方法
 const goBack = () => {
   uni.navigateBack()
 }
 
-const toggleFavorite = () => {
-  isFavorited.value = !isFavorited.value
-  uni.showToast({
-    title: isFavorited.value ? '已收藏' : '已取消收藏',
-    icon: 'success',
-    duration: 1500
-  })
+// 切换收藏状态
+const toggleFavorite = async () => {
+  if (!checkLogin()) return
+
+  const userId = getUserId()
+  if (!userId) {
+    uni.showToast({
+      title: '获取用户信息失败',
+      icon: 'none',
+      duration: 1500,
+    })
+    return
+  }
+
+  try {
+    await http({
+      url: '/userWrongCollectionQuestion/collect',
+      method: 'POST',
+      data: {
+        userId: userId,
+        subject: subject.value,
+        questionId: questionId.value,
+      },
+    })
+
+    isFavorited.value = !isFavorited.value
+    uni.showToast({
+      title: isFavorited.value ? '已收藏' : '已取消收藏',
+      icon: 'success',
+      duration: 1500,
+    })
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+    uni.showToast({
+      title: '操作失败，请重试',
+      icon: 'none',
+      duration: 1500,
+    })
+  }
+}
+
+// 检查题目是否已收藏
+const checkFavoriteStatus = async () => {
+  if (!checkLogin()) return
+
+  const userId = getUserId()
+  if (!userId) return
+
+  try {
+    const res: any = await http({
+      url: '/userWrongCollectionQuestion/isCollected',
+      method: 'GET',
+      data: {
+        userId: userId,
+        questionId: questionId.value,
+      },
+    })
+
+    isFavorited.value = res.data === true
+  } catch (error) {
+    console.error('检查收藏状态失败:', error)
+  }
 }
 
 const previewImage = (url: string) => {
   uni.previewImage({
     urls: [url],
-    current: url
+    current: url,
   })
 }
 
 const startPractice = () => {
   uni.navigateTo({
-    url: `/pages/index/sequential/sequential?sub=${questionInfo.value.subject}&startId=${questionInfo.value.questionId}`
+    url: `/pages/index/sequential/sequential?sub=${questionInfo.value.subject}&startId=${questionInfo.value.questionId}`,
   })
 }
 
 const startExam = () => {
   uni.navigateTo({
-    url: `/pages/index/exam/exam?sub=${questionInfo.value.subject}`
+    url: `/pages/index/exam/exam?sub=${questionInfo.value.subject}`,
   })
 }
 
 const viewRelatedQuestion = (question: any) => {
   uni.redirectTo({
-    url: `/pages/question-detail/question-detail?questionId=${question.questionId}&subject=${question.subject}`
+    url: `/pages/question-detail/question-detail?questionId=${question.questionId}&subject=${question.subject}`,
   })
 }
 
-// 模拟获取题目数据
-const fetchQuestionDetail = (questionId: string, subject: string) => {
-  // 这里应该调用实际的API获取题目详情
-  // 暂时使用模拟数据
-  questionInfo.value = {
-    questionId: questionId,
-    subject: parseInt(subject),
-    question: '机动车驾驶人违法驾驶造成重大交通事故构成犯罪的，依法追究什么责任？',
-    item1: '道德责任',
-    item2: '经济责任',
-    item3: '刑事责任',
-    item4: '直接责任',
-    answer: '3',
-    explains: '根据《道路交通安全法》规定，机动车驾驶人违法驾驶造成重大交通事故构成犯罪的，依法追究刑事责任，并由公安机关交通管理部门吊销机动车驾驶证，且终生不得重新取得机动车驾驶证。',
-    url: 'https://via.placeholder.com/300x200/4CAF50/white?text=交通标志'
-  }
+// 获取题目详情
+const fetchQuestionDetail = async (questionId: string, subject: string) => {
+  try {
+    const res: any = await http({
+      url: '/drive/driveQuestionDetail',
+      method: 'GET',
+      data: {
+        questionId: questionId,
+      },
+    })
 
-  // 模拟相关题目
-  relatedQuestions.value = [
-    {
-      questionId: parseInt(questionId) + 1,
-      subject: parseInt(subject),
-      question: '驾驶机动车在道路上违反道路交通安全法的行为，属于什么行为？'
-    },
-    {
-      questionId: parseInt(questionId) + 2,
-      subject: parseInt(subject),
-      question: '造成交通事故后逃逸，尚不构成犯罪的，处多少日以下拘留？'
-    },
-    {
-      questionId: parseInt(questionId) + 3,
-      subject: parseInt(subject),
-      question: '驾驶机动车违反道路交通安全法律法规发生重大事故构成犯罪的，依法追究刑事责任，吊销机动车驾驶证，将多少年内不得申请机动车驾驶证？'
+    if (res.data) {
+      questionInfo.value = res.data
+      // 获取相关题目
+      fetchRelatedQuestions(res.data.subject)
+      // 检查收藏状态
+      checkFavoriteStatus()
     }
-  ]
+  } catch (error) {
+    console.error('获取题目详情失败:', error)
+    uni.showToast({
+      title: '获取题目详情失败',
+      icon: 'none',
+    })
+  }
 }
 
-onMounted(() => {
-  // 获取页面参数
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const options = currentPage.options || {}
+// 获取相关题目
+const fetchRelatedQuestions = async (subject: number) => {
+  try {
+    const res: any = await http({
+      url: '/drive/driveTopicList',
+      method: 'GET',
+      data: {
+        subject: subject,
+      },
+    })
 
-  const questionId = options.questionId || '1'
-  const subject = options.subject || '1'
+    if (res.data) {
+      relatedQuestions.value = res.data.slice(0, 3)
+    }
+  } catch (error) {
+    console.error('获取相关题目失败:', error)
+  }
+}
 
-  fetchQuestionDetail(questionId, subject)
+// 页面加载时获取参数
+onLoad((options: any) => {
+  // 监听数据传递事件
+  uni.$on('questionData', (data: any) => {
+    if (data) {
+      questionInfo.value = data
+      questionId.value = data.questionId || data.id
+      subject.value = data.subject || '1'
+
+      // 获取相关题目（这里仍然需要调用接口）
+      fetchRelatedQuestions(data.subject)
+
+      // 检查收藏状态
+      checkFavoriteStatus()
+    }
+  })
+
+  // 如果没有通过事件传递数据，检查URL参数
+  if (options.questionId && !questionInfo.value.questionId) {
+    questionId.value = options.questionId
+    subject.value = options.subject || '1'
+    fetchQuestionDetail(questionId.value, subject.value)
+  }
 })
 </script>
 
@@ -250,14 +361,6 @@ onMounted(() => {
   padding-top: calc(8px + 14px);
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  height: 44px;
-}
-
 .header-left {
   display: flex;
   align-items: center;
@@ -274,7 +377,14 @@ onMounted(() => {
   font-size: 16px;
 }
 
-.header-title {
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
   font-size: 18px;
   font-weight: bold;
 }
@@ -284,69 +394,53 @@ onMounted(() => {
   text-align: right;
 }
 
-.favorite-btn {
+.favorite-icon {
   font-size: 20px;
   cursor: pointer;
   transition: transform 0.3s ease;
 }
 
-.favorite-btn:hover {
+.favorite-icon:hover {
   transform: scale(1.1);
 }
 
-.favorite-btn.active {
+.favorite-icon.favorited {
   animation: heartbeat 0.6s ease-in-out;
 }
 
 @keyframes heartbeat {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-/* 题目信息 */
-.question-info {
-  margin-top: 70px;
+/* 主要内容区域 */
+.main-content {
+  margin-top: 60px;
+  padding: 0 20px;
+}
+
+.question-card {
   background: white;
   border-radius: 15px;
-  margin: 70px 20px 20px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
-.question-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.question-content {
+  padding: 25px;
 }
 
 .question-number {
   font-size: 18px;
   font-weight: bold;
-}
-
-.subject-tag {
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-weight: bold;
-}
-
-.subject-tag.subject-one {
-  background: rgba(76, 175, 80, 0.3);
-  color: #4caf50;
-}
-
-.subject-tag.subject-four {
-  background: rgba(255, 152, 0, 0.3);
-  color: #ff9800;
-}
-
-.question-content {
-  padding: 25px;
+  margin-bottom: 10px;
 }
 
 .question-text {
@@ -363,7 +457,7 @@ onMounted(() => {
 }
 
 .question-img {
-  max-width: 100%;
+  width: 100%;
   height: auto;
   border-radius: 8px;
   cursor: pointer;

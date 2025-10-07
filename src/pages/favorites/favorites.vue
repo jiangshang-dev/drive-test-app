@@ -350,8 +350,13 @@ const selectTimeFilter = (filter: string) => {
 }
 
 const viewQuestion = (question: FavoriteQuestion) => {
+  // 跳转到题目详情页面，直接传递题目对象
   uni.navigateTo({
-    url: `/pages/question-detail/question-detail?questionId=${question.id}&subject=${question.subject}`,
+    url: `/pages/question-detail/question-detail`,
+    success: () => {
+      // 通过事件传递数据
+      uni.$emit('questionData', question)
+    },
   })
 }
 

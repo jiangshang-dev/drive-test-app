@@ -52,7 +52,7 @@
         >
           <view class="question-header">
             <text class="question-number">第 {{ index + 1 }} 题</text>
-            <view class="question-status">
+            <view class="question-status" v-if="false">
               <text :class="['status-badge', question.status]">
                 {{ getStatusText(question.status) }}
               </text>
@@ -60,15 +60,19 @@
           </view>
 
           <view class="question-content">
-            <text class="question-text">{{ question.question }}</text>
-            <view v-if="question.image" class="question-image">
-              <image :src="question.image" mode="aspectFit" />
+            <text class="question-text">{{ question.questionContent }}</text>
+            <view v-if="question.imageUrl" class="question-image">
+              <image
+                :src="question.imageUrl"
+                mode="aspectFit"
+                @click.stop="previewImage(question.imageUrl)"
+              />
             </view>
           </view>
 
           <view class="question-meta">
-            <text class="error-count">错误 {{ question.errorCount }} 次</text>
-            <text class="add-time">{{ formatDate(question.addTime) }}</text>
+            <text class="error-count">错误 {{ question.errorCount || 1 }} 次</text>
+            <text class="add-time">{{ formatTime(question.createTime) }}</text>
           </view>
         </view>
       </view>
@@ -84,55 +88,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
 
 // 错题统计数据
 const wrongStats = ref({
-  totalCount: 23,
-  reviewedCount: 15,
-  masteredCount: 8,
+  totalCount: 0,
+  reviewedCount: 0,
+  masteredCount: 0,
 })
 
 // 科目分类
 const subjectTabs = ref([
   { name: '全部', value: 'all' },
-  { name: '科目一', value: 'subject1' },
-  { name: '科目四', value: 'subject4' },
+  { name: '科目一', value: 1 },
+  { name: '科目四', value: 4 },
 ])
 
 const activeTab = ref(0)
 
 // 错题数据
-const wrongQuestions = ref([
-  {
-    id: 1,
-    question:
-      '驾驶机动车在高速公路上行驶，遇有雾、雨、雪、沙尘、冰雹等低能见度气象条件时，能见度在50米以下时，以下做法正确的是什么？',
-    subject: 'subject1',
-    status: 'unreviewed', // unreviewed, reviewing, mastered
-    errorCount: 3,
-    addTime: new Date('2024-01-15'),
-    image: '',
-  },
-  {
-    id: 2,
-    question: '车辆在交叉路口绿灯亮后，遇非机动车抢道行驶时，可以不让行。',
-    subject: 'subject1',
-    status: 'reviewing',
-    errorCount: 2,
-    addTime: new Date('2024-01-16'),
-    image: '',
-  },
-  {
-    id: 3,
-    question: '驾驶机动车在道路上违反道路通行规定应当接受相应的处罚。',
-    subject: 'subject4',
-    status: 'mastered',
-    errorCount: 1,
-    addTime: new Date('2024-01-17'),
-    image: '',
-  },
-])
+const wrongQuestions = ref([])
 
 // 筛选后的错题
 const filteredQuestions = computed(() => {
@@ -140,12 +117,95 @@ const filteredQuestions = computed(() => {
   if (currentTab.value === 'all') {
     return wrongQuestions.value
   }
-  return wrongQuestions.value.filter((q) => q.subject === currentTab.value)
+  return wrongQuestions.value.filter((q: any) => q.subject === currentTab.value)
 })
+
+// 获取用户ID
+const getUserId = () => {
+  try {
+    const memberStore = useMemberStore()
+    if (!memberStore.profile) {
+      return ''
+    }
+    return memberStore.profile.id
+  } catch (error) {
+    console.error('获取用户ID失败:', error)
+    return ''
+  }
+}
+
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
+
+// 加载错题数据
+const loadWrongQuestions = async () => {
+  if (!checkLogin()) return
+
+  try {
+    const userId = getUserId()
+    if (!userId) return
+
+    const currentTab = subjectTabs.value[activeTab.value]
+    const subject = currentTab.value === 'all' ? '' : currentTab.value
+
+    const res: any = await http({
+      url: '/userWrongCollectionQuestion/myWrongPage',
+      method: 'GET',
+      data: {
+        userId: userId,
+        subject: subject,
+        pageNo: 1,
+        pageSize: 100, // 获取所有错题，可根据需要调整分页
+      },
+    })
+
+    if (res.data && res.data.list) {
+      wrongQuestions.value = res.data.list.map((item: any) => ({
+        ...item,
+        status: 'unreviewed', // 默认状态，可根据实际需求调整
+      }))
+
+      // 更新统计数据
+      wrongStats.value = {
+        totalCount: res.data.total || 0,
+        reviewedCount: 0, // 可根据实际数据计算
+        masteredCount: 0, // 可根据实际数据计算
+      }
+    }
+  } catch (error) {
+    console.error('获取错题数据失败:', error)
+    uni.showToast({
+      title: '获取错题数据失败',
+      icon: 'none',
+    })
+  }
+}
 
 // 切换科目
 const switchTab = (index: number) => {
   activeTab.value = index
+  loadWrongQuestions()
 }
 
 // 获取状态文本
@@ -158,44 +218,105 @@ const getStatusText = (status: string) => {
   return statusMap[status] || '未知'
 }
 
-// 格式化日期
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-  })
+// 格式化时间
+const formatTime = (timestamp: string) => {
+  if (!timestamp) return '未知时间'
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffTime = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) {
+    return '今天'
+  } else if (diffDays === 1) {
+    return '昨天'
+  } else if (diffDays < 7) {
+    return `${diffDays}天前`
+  } else {
+    return date.toLocaleDateString()
+  }
 }
 
 // 复习错题
 const reviewQuestion = (question: any) => {
-  // 跳转到题目详情页面，传递题目ID和科目信息
-  const subject = question.subject === 'subject1' ? '1' : '4'
+  // 跳转到题目详情页面，直接传递题目对象
   uni.navigateTo({
-    url: `/pages/question-detail/question-detail?questionId=${question.id}&subject=${subject}`
+    url: `/pages/question-detail/question-detail`,
+    success: () => {
+      // 通过事件传递数据
+      uni.$emit('questionData', question)
+    },
+  })
+}
+
+// 预览图片
+const previewImage = (url: string) => {
+  uni.previewImage({
+    urls: [url],
+    current: url,
   })
 }
 
 // 清空错题
-const clearWrongQuestions = () => {
+const clearWrongQuestions = async () => {
+  if (!checkLogin()) return
+
+  const userId = getUserId()
+  if (!userId) {
+    uni.showToast({
+      title: '获取用户信息失败',
+      icon: 'none',
+      duration: 1500,
+    })
+    return
+  }
+
   uni.showModal({
     title: '确认清空',
-    content: '确定要清空所有错题吗？',
-    success: (res) => {
+    content: '确定要清空所有错题吗？此操作不可恢复。',
+    success: async (res) => {
       if (res.confirm) {
-        wrongQuestions.value = []
-        wrongStats.value = {
-          totalCount: 0,
-          reviewedCount: 0,
-          masteredCount: 0,
+        try {
+          const result: any = await http({
+            url: '/userWrongCollectionQuestion/clearWrong?userId=' + userId,
+            method: 'GET',
+          })
+
+          if (result.code === 0) {
+            // 清空成功，重新加载数据
+            wrongQuestions.value = []
+            wrongStats.value = {
+              totalCount: 0,
+              reviewedCount: 0,
+              masteredCount: 0,
+            }
+            uni.showToast({
+              title: '清空成功',
+              icon: 'success',
+            })
+            loadWrongQuestions()
+          } else {
+            uni.showToast({
+              title: '清空失败',
+              icon: 'none',
+            })
+          }
+        } catch (error) {
+          console.error('清空错题失败:', error)
+          uni.showToast({
+            title: '清空失败，请重试',
+            icon: 'none',
+          })
         }
-        uni.showToast({
-          title: '清空成功',
-          icon: 'success',
-        })
       }
     },
   })
 }
+
+// 页面加载时获取错题数据
+onMounted(() => {
+  loadWrongQuestions()
+})
 </script>
 
 <style lang="scss" scoped>

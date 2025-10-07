@@ -565,12 +565,42 @@ const selectOption = (optionIndex: number) => {
   userAnswers.value[currentQuestionIndex.value] = options[optionIndex]
   showAnswer.value = true
 
+  // 检查答案是否正确，如果错误则添加到错题本
+  const correctOptionIndex = parseInt(questions.value[currentQuestionIndex.value].correctAnswer) - 1
+  if (optionIndex !== correctOptionIndex) {
+    addToWrongQuestionBook(String(questions.value[currentQuestionIndex.value].id))
+  }
+
   // 自动跳转到下一题
   if (currentQuestionIndex.value < questions.value.length - 1) {
     setTimeout(() => {
       currentQuestionIndex.value++
       showAnswer.value = false
     }, 1000) // 1秒后跳转
+  }
+}
+
+// 添加到错题本
+const addToWrongQuestionBook = async (questionId: string) => {
+  try {
+    const userId = getUserId()
+    if (!userId) {
+      console.log('用户未登录，无法添加到错题本')
+      return
+    }
+
+    await http({
+      url: '/userWrongCollectionQuestion/wrong',
+      method: 'POST',
+      data: {
+        userId: userId,
+        subject: sub.value,
+        questionId: questionId,
+      },
+    })
+    console.log('已添加到错题本')
+  } catch (error) {
+    console.error('添加到错题本失败:', error)
   }
 }
 
