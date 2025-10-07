@@ -158,8 +158,7 @@
     {
       "path": "pages/question-detail/question-detail",
       "style": {
-        "navigationBarTitleText": "题目详情",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "题目详情"
       }
     }
   ],
