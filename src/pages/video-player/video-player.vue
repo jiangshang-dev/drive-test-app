@@ -35,7 +35,12 @@
           <text class="action-text">{{ likeCount }}</text>
         </view>
 
-        <view class="action-btn" :class="{ active: isFavorited }" @click="toggleFavorite">
+        <view
+          v-if="false"
+          class="action-btn"
+          :class="{ active: isFavorited }"
+          @click="toggleFavorite"
+        >
           <text class="action-icon">{{ isFavorited ? '⭐' : '☆' }}</text>
           <text class="action-text">收藏</text>
         </view>
@@ -45,7 +50,7 @@
           <text class="action-text">分享</text>
         </view>
 
-        <view class="action-btn" @click="downloadVideo">
+        <view v-if="false" class="action-btn" @click="downloadVideo">
           <text class="action-icon">📥</text>
           <text class="action-text">下载</text>
         </view>
@@ -55,13 +60,7 @@
       <view class="video-description">
         <text class="description-text">{{ videoInfo.description }}</text>
         <view class="video-tags" v-if="videoInfo.tags && videoInfo.tags.length > 0">
-          <text
-            v-for="tag in videoInfo.tags"
-            :key="tag"
-            class="tag-item"
-          >
-            #{{ tag }}
-          </text>
+          <text v-for="tag in videoInfo.tags" :key="tag" class="tag-item"> #{{ tag }} </text>
         </view>
       </view>
     </view>
@@ -96,11 +95,7 @@
             @focus="onCommentFocus"
             @blur="onCommentBlur"
           />
-          <button
-            class="send-btn"
-            :disabled="!commentText.trim()"
-            @click="sendComment"
-          >
+          <button class="send-btn" :disabled="!commentText.trim()" @click="sendComment">
             发送
           </button>
         </view>
@@ -108,11 +103,7 @@
 
       <!-- 评论列表 -->
       <view class="comments-list">
-        <view
-          v-for="comment in sortedComments"
-          :key="comment.id"
-          class="comment-item"
-        >
+        <view v-for="comment in sortedComments" :key="comment.id" class="comment-item">
           <view class="comment-avatar">
             <image :src="comment.avatar" class="avatar-img" />
           </view>
@@ -143,11 +134,7 @@
 
             <!-- 回复列表 -->
             <view v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-              <view
-                v-for="reply in comment.replies"
-                :key="reply.id"
-                class="reply-item"
-              >
+              <view v-for="reply in comment.replies" :key="reply.id" class="reply-item">
                 <text class="reply-author">{{ reply.username }}</text>
                 <text class="reply-text">: {{ reply.content }}</text>
                 <text class="reply-time">{{ formatCommentTime(reply.createTime) }}</text>
@@ -184,11 +171,7 @@
           ></textarea>
           <view class="modal-actions">
             <button class="cancel-btn" @click="closeReplyModal">取消</button>
-            <button
-              class="confirm-btn"
-              :disabled="!replyText.trim()"
-              @click="sendReply"
-            >
+            <button class="confirm-btn" :disabled="!replyText.trim()" @click="sendReply">
               发送
             </button>
           </view>
@@ -200,6 +183,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
 
 // 数据状态
 const videoInfo = ref({
@@ -208,6 +194,8 @@ const videoInfo = ref({
   description: '',
   thumbnail: '',
   videoUrl: '',
+  aliyunVideoId: '', // 添加阿里云视频ID字段
+  isVip: 0, // 添加VIP字段
   duration: '',
   views: '',
   likes: 0,
@@ -240,8 +228,8 @@ const comments = ref([
         username: '驾考达人',
         content: '是的，这个视频确实很棒',
         createTime: new Date(Date.now() - 1800000),
-      }
-    ]
+      },
+    ],
   },
   {
     id: 2,
@@ -251,7 +239,7 @@ const comments = ref([
     createTime: new Date(Date.now() - 7200000),
     likeCount: 8,
     isLiked: true,
-    replies: []
+    replies: [],
   },
   {
     id: 3,
@@ -261,8 +249,8 @@ const comments = ref([
     createTime: new Date(Date.now() - 14400000),
     likeCount: 5,
     isLiked: false,
-    replies: []
-  }
+    replies: [],
+  },
 ])
 
 // 计算属性
@@ -271,7 +259,9 @@ const sortedComments = computed(() => {
   if (sortType.value === 'hot') {
     return sorted.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
   } else {
-    return sorted.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+    return sorted.sort(
+      (a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime(),
+    )
   }
 })
 
@@ -302,7 +292,7 @@ const toggleLike = () => {
     uni.showToast({
       title: '点赞成功',
       icon: 'success',
-      duration: 1000
+      duration: 1000,
     })
   } else {
     likeCount.value--
@@ -314,7 +304,7 @@ const toggleFavorite = () => {
   uni.showToast({
     title: isFavorited.value ? '收藏成功' : '取消收藏',
     icon: 'success',
-    duration: 1000
+    duration: 1000,
   })
 }
 
@@ -325,9 +315,9 @@ const shareVideo = () => {
       const actions = ['微信', '朋友圈', '复制链接']
       uni.showToast({
         title: `分享到${actions[res.tapIndex]}`,
-        icon: 'success'
+        icon: 'success',
       })
-    }
+    },
   })
 }
 
@@ -336,13 +326,13 @@ const downloadVideo = () => {
     uni.showModal({
       title: '下载提示',
       content: '视频下载功能开发中，敬请期待！',
-      showCancel: false
+      showCancel: false,
     })
   } else {
     uni.showModal({
       title: 'VIP功能',
       content: '请先开通VIP会员才能下载视频',
-      showCancel: false
+      showCancel: false,
     })
   }
 }
@@ -370,7 +360,7 @@ const sendComment = () => {
     createTime: new Date(),
     likeCount: 0,
     isLiked: false,
-    replies: []
+    replies: [],
   }
 
   comments.value.unshift(newComment)
@@ -378,7 +368,7 @@ const sendComment = () => {
 
   uni.showToast({
     title: '评论成功',
-    icon: 'success'
+    icon: 'success',
   })
 }
 
@@ -409,7 +399,7 @@ const sendReply = () => {
     id: Date.now(),
     username: '当前用户',
     content: replyText.value.trim(),
-    createTime: new Date()
+    createTime: new Date(),
   }
 
   if (!replyTarget.value.replies) {
@@ -419,15 +409,43 @@ const sendReply = () => {
 
   uni.showToast({
     title: '回复成功',
-    icon: 'success'
+    icon: 'success',
   })
 
   closeReplyModal()
 }
 
+// 根据阿里云视频ID获取播放地址
+const getPlayerUrl = async (aliyunVideoId: string) => {
+  try {
+    const url = `/vod/play/info?videoId=${aliyunVideoId}`
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+    })
+
+    console.log('获取播放地址响应:', res)
+
+    if (res && res.data) {
+      return res.data.playUrl
+    }
+    return ''
+  } catch (error) {
+    console.error('获取播放地址失败:', error)
+    uni.showToast({
+      title: '获取播放地址失败',
+      icon: 'error',
+    })
+    return ''
+  }
+}
+
 const formatDate = (date: string | Date) => {
   const d = new Date(date)
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d
+    .getDate()
+    .toString()
+    .padStart(2, '0')}`
 }
 
 const formatCommentTime = (date: string | Date) => {
@@ -451,29 +469,84 @@ const formatCommentTime = (date: string | Date) => {
 }
 
 onMounted(() => {
-  // 获取页面参数
+  // 获取页面参数（从视频列表页通过 URL 传递的参数）
+  // 在视频列表页中通过 uni.navigateTo 跳转时传递了 video 参数:
+  // url: `/pages/video-player/video-player?video=${serializedVideo}`
   const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
+  const currentPage: any = pages[pages.length - 1]
   const options = currentPage.options || {}
 
-  // 模拟根据ID获取视频信息
-  const videoId = options.id || '1'
+  console.log('currentPage.value---', currentPage)
+  console.log('options.value---', options)
+  console.log('options.value---', options.video)
+  // 获取视频信息（实际项目中应该从上一个页面传递过来或通过接口获取）
+  // 解析从视频列表页传递过来的序列化视频对象
+  const videoParam = options.video ? JSON.parse(options.video) : null
 
-  // 模拟视频数据
-  videoInfo.value = {
-    id: videoId,
-    title: '交通标志完全指南',
-    description: '本视频详细讲解各种交通标志的含义和应用场景，包括警告标志、禁令标志、指示标志等。通过实际案例分析，帮助学员更好地理解和记忆交通标志，提高驾考通过率。',
-    thumbnail: 'https://via.placeholder.com/300x180/667eea/white?text=交通标志',
-    videoUrl: 'https://www.example.com/video.mp4', // 实际项目中应该是真实的视频URL
-    duration: '15:30',
-    views: '12.5k',
-    likes: 856,
-    publishTime: '2024-01-15',
-    tags: ['交通标志', '科目一', '理论考试', '驾考必备']
+  if (videoParam) {
+    // 从传递的视频对象中获取信息
+    videoInfo.value = {
+      id: videoParam.id || '',
+      title: videoParam.videoTitle || videoParam.title || '',
+      description: videoParam.videoDesc || videoParam.description || '',
+      thumbnail: videoParam.coverImage || videoParam.thumbnail || '',
+      videoUrl: videoParam.videoUrl || '',
+      aliyunVideoId: videoParam.aliyunVideoId || '',
+      isVip: videoParam.isVip || 0,
+      duration: videoParam.videoDuration || videoParam.duration || '',
+      views: videoParam.viewCount || videoParam.views || '',
+      likes: videoParam.likeCount || videoParam.likes || 0,
+      publishTime: videoParam.gmtCreate || videoParam.publishTime || '',
+      tags: videoParam.tags
+        ? Array.isArray(videoParam.tags)
+          ? videoParam.tags
+          : [videoParam.tags]
+        : [],
+    }
+
+    likeCount.value = videoInfo.value.likes
+
+    console.log('videoInfo.value---', videoInfo.value)
+    // 如果有阿里云视频ID，获取播放地址
+    if (videoInfo.value.aliyunVideoId) {
+      getPlayerUrl(videoInfo.value.aliyunVideoId).then((url) => {
+        if (url) {
+          videoInfo.value.videoUrl = url
+        }
+      })
+    }
+  } else {
+    // 兼容之前的通过ID获取的方式
+    const videoId = options.id || '1'
+
+    // 模拟视频数据
+    videoInfo.value = {
+      id: videoId,
+      title: '交通标志完全指南',
+      description:
+        '本视频详细讲解各种交通标志的含义和应用场景，包括警告标志、禁令标志、指示标志等。通过实际案例分析，帮助学员更好地理解和记忆交通标志，提高驾考通过率。',
+      thumbnail: 'https://via.placeholder.com/300x180/667eea/white?text=交通标志',
+      videoUrl: 'https://www.example.com/video.mp4', // 实际项目中应该是真实的视频URL
+      aliyunVideoId: '80aaa547a36171f0810a5017e1e90102', // 示例阿里云视频ID
+      isVip: 0, // 非VIP视频
+      duration: '15:30',
+      views: '12.5k',
+      likes: 856,
+      publishTime: '2024-01-15',
+      tags: ['交通标志', '科目一', '理论考试', '驾考必备'],
+    }
+
+    likeCount.value = videoInfo.value.likes
+
+    // 获取播放地址
+    getPlayerUrl(videoInfo.value.aliyunVideoId).then((url) => {
+      console.log('url-', url)
+
+      if (url) {
+        videoInfo.value.videoUrl = url
+      }
+    })
   }
-
-  likeCount.value = videoInfo.value.likes
 
   // 检查用户是否已点赞和收藏（实际项目中从服务器获取）
   // isLiked.value = checkUserLikeStatus(videoId)

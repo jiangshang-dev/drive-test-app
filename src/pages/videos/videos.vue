@@ -39,72 +39,69 @@
     <!-- 视频分类标签 -->
     <view class="category-tabs">
       <view
-        :class="['tab-item', selectedCategory === 'all' ? 'active' : '']"
-        @click="selectCategory('all')"
+        :class="selectedCategory === item.code ? 'tab-item active' : 'tab-item'"
+        v-for="item in questionTypes"
+        :key="item.code"
+        @click="selectCategory(item.code)"
       >
-        全部
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'traffic-signs' ? 'active' : '']"
-        @click="selectCategory('traffic-signs')"
-      >
-        交通标志
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'traffic-rules' ? 'active' : '']"
-        @click="selectCategory('traffic-rules')"
-      >
-        交通法规
-      </view>
-      <view
-        :class="['tab-item', selectedCategory === 'driving-skills' ? 'active' : '']"
-        @click="selectCategory('driving-skills')"
-      >
-        驾驶技巧
+        {{ item.name }}
       </view>
     </view>
 
     <!-- 视频列表 -->
-    <view class="videos-list">
-      <view
-        v-for="(video, index) in filteredVideos"
-        :key="index"
-        class="video-card"
-        @click="playVideo(video)"
-      >
-        <view class="video-thumbnail">
-          <image class="thumbnail-img" :src="video.thumbnail" mode="aspectFill" />
-          <view class="play-overlay">
-            <text class="play-icon">▶️</text>
+    <scroll-view class="videos-scroll" @scrolltolower="loadMoreVideos" scroll-y>
+      <view class="videos-list">
+        <view
+          v-for="(video, index) in filteredVideos"
+          :key="index"
+          class="video-card"
+          @click="playVideo(video)"
+        >
+          <view class="video-thumbnail">
+            <image class="thumbnail-img" :src="video.coverImage" mode="aspectFill" />
+            <view class="play-overlay">
+              <text class="play-icon">▶️</text>
+            </view>
+            <text class="video-duration">{{ formatDuration(video.videoDuration) }}</text>
+            <view v-if="video.isVip === 1 && !isVipUser" class="vip-badge">VIP</view>
           </view>
-          <text class="video-duration">{{ video.duration }}</text>
-          <view v-if="video.isVip && !isVipUser" class="vip-badge">VIP</view>
+
+          <view class="video-info">
+            <text class="video-title">{{ video.videoTitle }}</text>
+            <text class="video-desc">{{ video.videoDesc }}</text>
+
+            <view class="video-meta">
+              <view class="meta-item">
+                <text class="meta-icon">👁</text>
+                <text class="meta-text">{{ video.viewCount }}</text>
+              </view>
+              <view class="meta-item">
+                <text class="meta-icon">👍</text>
+                <text class="meta-text">{{ video.likeCount }}</text>
+              </view>
+              <view class="meta-item">
+                <text class="meta-icon">⭐</text>
+                <text class="meta-text">{{ video.rating }}</text>
+              </view>
+            </view>
+          </view>
         </view>
 
-        <view class="video-info">
-          <text class="video-title">{{ video.title }}</text>
-          <text class="video-desc">{{ video.description }}</text>
-
-          <view class="video-meta">
-            <view class="meta-item">
-              <text class="meta-icon">👁</text>
-              <text class="meta-text">{{ video.views }}</text>
-            </view>
-            <view class="meta-item">
-              <text class="meta-icon">👍</text>
-              <text class="meta-text">{{ video.likes }}</text>
-            </view>
-            <view class="meta-item">
-              <text class="meta-icon">⭐</text>
-              <text class="meta-text">{{ video.rating }}</text>
-            </view>
-          </view>
+        <!-- 加载更多提示 -->
+        <view class="load-more" v-if="loading">
+          <text>加载中...</text>
+        </view>
+        <view class="load-more" v-else-if="noMore && filteredVideos.length > 0">
+          <text>没有更多数据了</text>
+        </view>
+        <view class="load-more" v-else-if="filteredVideos.length === 0 && !loading">
+          <text>暂无视频数据</text>
         </view>
       </view>
-    </view>
+    </scroll-view>
 
     <!-- 空状态 -->
-    <view v-if="filteredVideos.length === 0" class="empty-state">
+    <view v-if="filteredVideos.length === 0 && !loading" class="empty-state">
       <text class="empty-icon">📹</text>
       <text class="empty-title">暂无视频</text>
       <text class="empty-desc">该分类下暂时没有视频内容</text>
@@ -124,8 +121,9 @@
               <view
                 v-for="option in difficultyOptions"
                 :key="option.value"
-                class="filter-option"
-                :class="{ active: selectedDifficulty === option.value }"
+                :class="
+                  selectedDifficulty === option.value ? 'filter-option active' : 'filter-option'
+                "
                 @click="selectDifficulty(option.value)"
               >
                 {{ option.label }}
@@ -139,8 +137,9 @@
               <view
                 v-for="option in durationOptions"
                 :key="option.value"
-                class="filter-option"
-                :class="{ active: selectedDuration === option.value }"
+                :class="
+                  selectedDuration === option.value ? 'filter-option active' : 'filter-option'
+                "
                 @click="selectDuration(option.value)"
               >
                 {{ option.label }}
@@ -182,19 +181,101 @@
         </view>
       </view>
     </view>
+
+    <!-- 登录提示弹窗 -->
+    <view v-if="showLoginModal" class="modal" @click="showLoginModal = false">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">提示</text>
+          <text class="close" @click="showLoginModal = false">&times;</text>
+        </view>
+        <view class="modal-body">
+          <view class="login-prompt">
+            <text class="prompt-text">请先登录后查看视频内容</text>
+            <button class="login-btn" @click="goToLogin">立即登录</button>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { http } from '@/utils/http'
+import { useMemberStore } from '@/stores'
+
+// 类型定义
+interface DictType {
+  id: string
+  dictValue: string
+  dictLabel: string
+}
+
+interface VideoCategory {
+  code: string
+  name: string
+  icon: string
+}
+
+interface VideoItem {
+  id: string
+  videoTitle: string
+  videoDesc: string
+  coverImage: string
+  videoUrl: string
+  aliyunVideoId: string
+  playAuth: string
+  videoDuration: number
+  videoSize: string
+  videoFormat: string
+  resolution: string
+  category: string
+  tags: string
+  instructor: string
+  difficultyLevel: number
+  isVip: number
+  isHot: number
+  isDownloadable: number
+  viewCount: string
+  likeCount: string
+  shareCount: string
+  commentCount: string
+  downloadCount: string
+  rating: number
+  ratingCount: number
+  sortOrder: number
+  status: number
+  uploadUserId: string | null
+  auditUserId: string | null
+  auditTime: string | null
+  publishTime: string | null
+  isDeleted: number
+  gmtCreate: string
+  gmtModified: string
+}
+
+interface VideoResponse {
+  total: number
+  list: VideoItem[]
+}
 
 // 数据状态
 const isVipUser = ref(false) // 模拟VIP状态
 const selectedCategory = ref('all')
 const showFilterModal = ref(false)
 const showVipModal = ref(false)
+const showLoginModal = ref(false)
 const selectedDifficulty = ref('all')
 const selectedDuration = ref('all')
+const questionTypes = ref<VideoCategory[]>([])
+const videos = ref<VideoItem[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalVideos = ref(0)
+const loading = ref(false)
+const noMore = ref(false)
 
 // 筛选选项
 const difficultyOptions = ref([
@@ -211,145 +292,76 @@ const durationOptions = ref([
   { label: '15分钟以上', value: 'long' },
 ])
 
-// 模拟视频数据
-const videos = ref([
-  {
-    id: 1,
-    title: '交通标志完全指南',
-    description: '详细讲解各种交通标志的含义和应用场景',
-    thumbnail: 'https://via.placeholder.com/300x180/667eea/white?text=交通标志',
-    duration: '15:30',
-    views: '12.5k',
-    likes: '856',
-    rating: '4.8',
-    category: 'traffic-signs',
-    difficulty: 'basic',
-    isVip: false,
-  },
-  {
-    id: 2,
-    title: '科目一理论精讲',
-    description: '科目一考试重点理论知识详细解析',
-    thumbnail: 'https://via.placeholder.com/300x180/4caf50/white?text=理论精讲',
-    duration: '25:42',
-    views: '8.9k',
-    likes: '642',
-    rating: '4.9',
-    category: 'traffic-rules',
-    difficulty: 'intermediate',
-    isVip: true,
-  },
-  {
-    id: 3,
-    title: '安全驾驶技巧',
-    description: '实用的安全驾驶技巧和注意事项',
-    thumbnail: 'https://via.placeholder.com/300x180/ff9800/white?text=安全驾驶',
-    duration: '18:15',
-    views: '15.2k',
-    likes: '1.2k',
-    rating: '4.7',
-    category: 'driving-skills',
-    difficulty: 'basic',
-    isVip: false,
-  },
-  {
-    id: 4,
-    title: '道路标线识别',
-    description: '各种道路标线的识别方法和通行规则',
-    thumbnail: 'https://via.placeholder.com/300x180/e91e63/white?text=道路标线',
-    duration: '12:08',
-    views: '6.7k',
-    likes: '428',
-    rating: '4.6',
-    category: 'traffic-signs',
-    difficulty: 'intermediate',
-    isVip: true,
-  },
-  {
-    id: 5,
-    title: '违法行为及处罚',
-    description: '常见违法行为分析及相应处罚标准',
-    thumbnail: 'https://via.placeholder.com/300x180/9c27b0/white?text=违法处罚',
-    duration: '22:36',
-    views: '9.3k',
-    likes: '567',
-    rating: '4.5',
-    category: 'traffic-rules',
-    difficulty: 'advanced',
-    isVip: true,
-  },
-  {
-    id: 6,
-    title: '复杂路况应对',
-    description: '恶劣天气和复杂路况的驾驶技巧',
-    thumbnail: 'https://via.placeholder.com/300x180/607d8b/white?text=复杂路况',
-    duration: '19:24',
-    views: '4.1k',
-    likes: '312',
-    rating: '4.8',
-    category: 'driving-skills',
-    difficulty: 'advanced',
-    isVip: true,
-  },
-])
-
 // 筛选后的视频列表
 const filteredVideos = computed(() => {
-  let filtered = videos.value
-
-  // 按分类筛选
-  if (selectedCategory.value !== 'all') {
-    filtered = filtered.filter((video) => video.category === selectedCategory.value)
-  }
-
-  // 按难度筛选
-  if (selectedDifficulty.value !== 'all') {
-    filtered = filtered.filter((video) => video.difficulty === selectedDifficulty.value)
-  }
-
-  // 按时长筛选
-  if (selectedDuration.value !== 'all') {
-    filtered = filtered.filter((video) => {
-      const duration = parseInt(video.duration.split(':')[0])
-      switch (selectedDuration.value) {
-        case 'short':
-          return duration < 5
-        case 'medium':
-          return duration >= 5 && duration <= 15
-        case 'long':
-          return duration > 15
-        default:
-          return true
-      }
-    })
-  }
-
-  return filtered
+  // 这里我们不再使用前端筛选，而是通过接口获取数据
+  return videos.value
 })
 
-// 方法
-const selectCategory = (category) => {
-  selectedCategory.value = category
+// 根据类型获取图标
+const getIconForType = (type: string) => {
+  const iconMap: Record<string, string> = {
+    'traffic-signs': '🚦',
+    'traffic-rules': '📜',
+    'driving-skills': '🚗',
+    // 可以根据实际需求添加更多类型和图标
+  }
+  return iconMap[type] || '📁'
 }
 
-const selectDifficulty = (difficulty) => {
+// 格式化视频时长
+const formatDuration = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+// 方法
+const selectCategory = (category: string) => {
+  console.log('category----', category)
+  selectedCategory.value = category
+  // 重置分页参数
+  currentPage.value = 1
+  videos.value = []
+  noMore.value = false
+  // 获取该分类下的视频
+  loadVideos()
+}
+
+const selectDifficulty = (difficulty: string) => {
   selectedDifficulty.value = difficulty
 }
 
-const selectDuration = (duration) => {
+const selectDuration = (duration: string) => {
   selectedDuration.value = duration
 }
 
-const playVideo = (video) => {
-  if (video.isVip && !isVipUser.value) {
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  return !!memberStore.profile
+}
+
+// 播放视频
+const playVideo = (video: VideoItem) => {
+  // 检查用户是否登录
+  if (!checkLogin()) {
+    showLoginModal.value = true
+    return
+  }
+
+  // 检查是否为VIP视频且用户不是VIP
+  if (video.isVip === 1 && !isVipUser.value) {
     showVipModal.value = true
     return
   }
 
-  // 跳转到视频播放页面
+  // 跳转到视频播放页面，对视频对象进行序列化处理
   console.log('跳转到视频播放页面', video)
+  const serializedVideo = JSON.stringify(video)
+  console.log('serializedVideo-', serializedVideo)
   uni.navigateTo({
-    url: `/pages/video-player/video-player?id=${video.id}&title=${encodeURIComponent(video.title)}`,
+    url: `/pages/video-player/video-player?video=${serializedVideo}`,
     success: () => {
       console.log('视频播放页面跳转成功')
     },
@@ -363,6 +375,119 @@ const playVideo = (video) => {
   })
 }
 
+// 获取视频分类列表
+const getDictType = async () => {
+  try {
+    let url = '/dict/type/getByDictName?dictCode=traffic_video_category'
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+    })
+    console.log('res-', res.data)
+
+    // 将后端返回的数据格式转换为前端需要的格式
+    if (res.data && Array.isArray(res.data)) {
+      questionTypes.value = res.data.map((item: DictType) => ({
+        code: item.id,
+        name: item.dictLabel,
+        icon: getIconForType(item.dictValue), // 根据类型获取图标
+      }))
+    }
+
+    console.log('questionTypes-----', questionTypes.value)
+  } catch (error) {
+    console.error('获取视频分类失败:', error)
+    // 如果获取失败，使用默认分类
+    questionTypes.value = [
+      { code: 'all', name: '全部', icon: '📁' },
+      { code: 'traffic-signs', name: '交通标志', icon: '🚦' },
+      { code: 'traffic-rules', name: '交通法规', icon: '📜' },
+      { code: 'driving-skills', name: '驾驶技巧', icon: '🚗' },
+    ]
+  }
+}
+
+// 加载视频列表
+const loadVideos = async () => {
+  if (loading.value || noMore.value) return
+
+  loading.value = true
+
+  console.log('selectedCategory.value--', selectedCategory.value)
+
+  try {
+    // 构造查询参数
+    const params: Record<string, any> = {
+      category: selectedCategory.value === 'all' ? '' : selectedCategory.value,
+      page: currentPage.value,
+      limit: pageSize.value,
+    }
+
+    // 移除空值参数
+    Object.keys(params).forEach((key) => {
+      if (params[key] === '' || params[key] === undefined || params[key] === null) {
+        delete params[key]
+      }
+    })
+
+    const url = '/aptrafficvideo/page'
+    console.log('请求URL:', url)
+    console.log('请求参数:', params)
+
+    const res: any = await http({
+      url: url,
+      method: 'GET',
+      data: params, // 直接使用data传递参数
+    })
+
+    console.log('视频列表响应:', res)
+
+    // 检查响应数据结构
+    if (res && res.data) {
+      // 如果是第一页，清空现有数据
+      if (currentPage.value === 1) {
+        videos.value = res.data.list || []
+      } else {
+        // 否则追加数据
+        videos.value = [...videos.value, ...(res.data.list || [])]
+      }
+
+      totalVideos.value = res.data.total || 0
+
+      // 检查是否还有更多数据
+      if (videos.value.length >= (res.data.total || 0)) {
+        noMore.value = true
+      }
+      console.log('当前视频列表:', videos.value)
+      console.log('总视频数:', totalVideos.value)
+      console.log('是否还有更多:', !noMore.value)
+    } else {
+      console.error('响应数据格式不正确:', res)
+      uni.showToast({
+        title: '数据格式错误',
+        icon: 'error',
+      })
+    }
+  } catch (error) {
+    console.error('获取视频列表失败:', error)
+    uni.showToast({
+      title: '获取视频失败',
+      icon: 'error',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 加载更多视频（分页）
+const loadMoreVideos = () => {
+  if (!loading.value && !noMore.value) {
+    currentPage.value++
+    loadVideos()
+  }
+}
+
+// 升级到VIP
 const upgradeToVip = () => {
   // 跳转到VIP页面
   console.log('跳转到VIP会员页面')
@@ -375,11 +500,30 @@ const upgradeToVip = () => {
       console.error('VIP页面跳转失败:', err)
       uni.showToast({
         title: '跳转失败',
-        icon: 'error'
+        icon: 'error',
       })
-    }
+    },
   })
   showVipModal.value = false
+}
+
+// 去登录
+const goToLogin = () => {
+  console.log('跳转到登录页面')
+  uni.navigateTo({
+    url: '/pages/login/login',
+    success: () => {
+      console.log('登录页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('登录页面跳转失败:', err)
+      uni.showToast({
+        title: '跳转失败',
+        icon: 'error',
+      })
+    },
+  })
+  showLoginModal.value = false
 }
 
 const goToTrafficSigns = () => {
@@ -402,7 +546,23 @@ const goToTrafficSigns = () => {
 onMounted(() => {
   // 初始化时可以从服务器获取用户VIP状态
   // isVipUser.value = checkUserVipStatus()
+
+  // 获取视频分类数据
+  getDictType()
+
+  // 加载默认分类的视频
+  loadVideos()
 })
+
+// 监听页面滚动到底部事件
+onLoad(() => {
+  uni.$on('scrollToLower', loadMoreVideos)
+})
+
+// 页面卸载时移除事件监听
+// onUnmounted(() => {
+//   uni.$off('scrollToLower', loadMoreVideos)
+// })
 </script>
 
 <style lang="scss" scoped>
@@ -502,6 +662,9 @@ onMounted(() => {
   padding: 10px;
   margin: 0 20px 20px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 60px;
+  z-index: 999;
 }
 
 .tab-item {
@@ -520,6 +683,11 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+/* 视频滚动区域 */
+.videos-scroll {
+  height: calc(100vh - 200px);
 }
 
 /* 视频列表 */
@@ -665,6 +833,14 @@ onMounted(() => {
   display: block;
 }
 
+/* 加载更多提示 */
+.load-more {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
 /* 模态框样式 */
 .modal {
   position: fixed;
@@ -802,6 +978,36 @@ onMounted(() => {
 }
 
 .vip-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* 登录弹窗样式 */
+.login-prompt {
+  text-align: center;
+}
+
+.prompt-text {
+  display: block;
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #333;
+}
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
