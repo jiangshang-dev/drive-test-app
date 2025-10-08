@@ -272,7 +272,7 @@ const goToTrafficSigns = () => {
         <view class="video-list">
           <view class="video-item" @click="goToTrafficSigns()">
             <image
-              src="https://via.placeholder.com/120x80/2196F3/white?text=交通标志"
+              src="https://driver-exam-plus.oss-cn-beijing.aliyuncs.com/j1833b72a69341f242e90fe16d017c61d.jpg"
               mode="aspectFit"
             ></image>
             <view class="video-info">
