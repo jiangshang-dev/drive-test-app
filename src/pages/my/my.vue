@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useMemberStore } from '@/stores'
+import { vipChecker } from '@/utils/vipChecker'
 
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets } = uni.getSystemInfoSync()
@@ -20,7 +21,11 @@ const studyStats = ref({
 
 // 计算VIP状态
 const isVipUser = computed(() => {
-  return memberStore.profile && memberStore.profile.vipLevel > 0
+  return (
+    memberStore.profile &&
+    memberStore.profile.vipLevel !== undefined &&
+    memberStore.profile.vipLevel > 0
+  )
 })
 
 // 学习统计数据
@@ -42,8 +47,15 @@ const menuItems = ref([
 ])
 
 // 跳转到错题本页面
-const goToWrongQuestions = () => {
+const goToWrongQuestions = async () => {
   console.log('跳转到错题本')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设错题本不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/wrong-questions/wrong-questions',
     success: () => {
@@ -60,8 +72,15 @@ const goToWrongQuestions = () => {
 }
 
 // 跳转到我的收藏页面
-const goToFavorites = () => {
+const goToFavorites = async () => {
   console.log('跳转到我的收藏')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设收藏不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/favorites/favorites',
     success: () => {
@@ -78,8 +97,15 @@ const goToFavorites = () => {
 }
 
 // 跳转到学习记录页面
-const goToStudyRecord = () => {
+const goToStudyRecord = async () => {
   console.log('跳转到学习记录')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设学习记录不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/study-record/study-record',
     success: () => {
@@ -96,8 +122,15 @@ const goToStudyRecord = () => {
 }
 
 // 跳转到考试记录页面
-const goToExamRecord = () => {
+const goToExamRecord = async () => {
   console.log('跳转到考试记录')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设考试记录不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/exam-record/exam-record',
     success: () => {
@@ -114,8 +147,15 @@ const goToExamRecord = () => {
 }
 
 // 跳转到学习统计页面
-const goToStatistics = () => {
+const goToStatistics = async () => {
   console.log('跳转到学习统计')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设学习统计不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/statistics/statistics',
     success: () => {
@@ -132,8 +172,15 @@ const goToStatistics = () => {
 }
 
 // 跳转到积分商城页面
-const goToPointsMall = () => {
+const goToPointsMall = async () => {
   console.log('跳转到积分商城')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设积分商城不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/points-mall/points-mall',
     success: () => {
@@ -150,8 +197,15 @@ const goToPointsMall = () => {
 }
 
 // 跳转到会员中心页面
-const goToMemberCenter = () => {
+const goToMemberCenter = async () => {
   console.log('跳转到会员中心')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 会员中心不需要VIP权限检查
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/member-center/member-center',
     success: () => {
@@ -168,8 +222,15 @@ const goToMemberCenter = () => {
 }
 
 // 跳转到我的订单页面
-const goToOrderList = () => {
+const goToOrderList = async () => {
   console.log('跳转到我的订单')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设订单列表不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/order-list/order-list',
     success: () => {
@@ -186,8 +247,15 @@ const goToOrderList = () => {
 }
 
 // 处理菜单点击 - 根据菜单项调用对应的跳转函数
-const handleMenuClick = (item: any) => {
+const handleMenuClick = async (item: any) => {
   console.log('点击菜单:', item.title)
+
+  // 检查是否有VIP权限要求（根据实际业务需求）
+  const needVip = item.title === '交规视频' // 假设只有视频需要VIP权限
+  const hasAccess = await vipChecker.checkVipAccess(needVip)
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
 
   switch (item.title) {
     case '错题本':
@@ -215,12 +283,26 @@ const handleMenuClick = (item: any) => {
       goToOrderList()
       break
     default:
-      console.log('未知菜单项:', item.title)
       uni.showToast({
-        title: '该功能暂未开放',
+        title: '功能开发中',
         icon: 'none',
       })
   }
+}
+
+// 处理登录
+const handleLogin = () => {
+  uni.navigateTo({
+    url: '/pages/login/login',
+  })
+}
+
+// 处理个人信息编辑
+const handleProfileEdit = () => {
+  uni.showToast({
+    title: '个人信息编辑',
+    icon: 'none',
+  })
 }
 
 // 显示VIP弹窗
@@ -243,30 +325,15 @@ const closeSettingsModal = () => {
   showSettingsModal.value = false
 }
 
-// 处理登录
-const handleLogin = () => {
-  console.log('跳转到登录页面')
-  // 跳转到登录页面
-  uni.navigateTo({
-    url: '/pages/login/login',
-  })
-}
-
-// 处理个人资料编辑
-const handleProfileEdit = () => {
-  console.log('编辑个人资料')
-}
-
-// 处理退出登录
-const handleLogout = () => {
-  console.log('退出登录')
-  // 这里添加退出登录逻辑
-}
+// 页面加载时检查会员状态
+onMounted(async () => {
+  // 页面加载时检查会员状态
+  await vipChecker.checkVipStatus(true)
+})
 </script>
 
 <template>
   <view class="container">
-    
     <!-- 个人资料卡片 -->
     <view class="profile-card">
       <!-- 已登录状态 -->
@@ -281,15 +348,21 @@ const handleLogout = () => {
             "
           />
           <view class="user-details">
-            <text class="nickname">{{ 
-              (memberStore.profile && memberStore.profile.nickname) || (memberStore.profile && memberStore.profile.account) || '驾考学员'
+            <text class="nickname">{{
+              (memberStore.profile && memberStore.profile.nickname) ||
+              (memberStore.profile && memberStore.profile.account) ||
+              '驾考学员'
             }}</text>
             <view class="user-level">
               <text v-if="isVipUser" class="vip-badge">VIP会员</text>
               <text v-else class="normal-badge">普通用户</text>
-              <text class="level-text">学习等级 Lv.{{ (memberStore.profile && memberStore.profile.level) || 1 }}</text>
+              <text class="level-text"
+                >学习等级 Lv.{{ (memberStore.profile && memberStore.profile.level) || 1 }}</text
+              >
             </view>
-            <text class="phone">{{ (memberStore.profile && memberStore.profile.mobile) || '未绑定手机' }}</text>
+            <text class="phone">{{
+              (memberStore.profile && memberStore.profile.mobile) || '未绑定手机'
+            }}</text>
           </view>
         </view>
         <!-- VIP升级按钮 -->

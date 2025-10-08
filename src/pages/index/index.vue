@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { vipChecker } from '@/utils/vipChecker'
 
 const activeTab = ref(0)
 const rewardedAd = ref(null)
 const pendingSub = ref<number | null>(null)
 const examClickCount = ref(0)
 
-const urlCallback = ref({})
+const urlCallback = ref<{ userId?: number; extra?: number }>({})
 
 const getDailyClickCount = () => {
   const today = new Date().toDateString()
@@ -30,8 +31,15 @@ const navigateTo = (type: string, sub: number) => {
 }
 
 // 功能页面跳转方法
-const goToVideos = () => {
+const goToVideos = async () => {
   console.log('跳转到交规视频页面')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(true) // 假设视频页面需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/videos/videos',
     success: () => {
@@ -47,8 +55,15 @@ const goToVideos = () => {
   })
 }
 
-const goToWrongQuestions = () => {
+const goToWrongQuestions = async () => {
   console.log('跳转到错题本页面')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设错题本不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/wrong-questions/wrong-questions',
     success: () => {
@@ -64,8 +79,15 @@ const goToWrongQuestions = () => {
   })
 }
 
-const goToFavorites = () => {
+const goToFavorites = async () => {
   console.log('跳转到我的收藏页面')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设收藏不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/favorites/favorites',
     success: () => {
@@ -81,8 +103,15 @@ const goToFavorites = () => {
   })
 }
 
-const goToPoints = () => {
+const goToPoints = async () => {
   console.log('跳转到积分商城页面')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设积分商城不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/points-mall/points-mall',
     success: () => {
@@ -112,7 +141,13 @@ const playVideo = (id: number) => {
   })
 }
 
-const handleExamClick = (sub: number) => {
+const handleExamClick = async (sub: number) => {
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设模拟考试不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   navigateTo('exam', sub)
 
   /* const clickCount = getDailyClickCount()
@@ -137,9 +172,11 @@ const handleExamClick = (sub: number) => {
   }) */
 }
 
-const handleAdClose = (e) => {
+const handleAdClose = (e: any) => {
   if (e.detail && e.detail.isEnded) {
-    navigateTo('exam', pendingSub.value)
+    if (pendingSub.value !== null) {
+      navigateTo('exam', pendingSub.value)
+    }
     pendingSub.value = null
 
     let getTime = new Date().getTime()
@@ -149,25 +186,28 @@ const handleAdClose = (e) => {
   }
 }
 
-const onload = (e) => {
+const onload = (e: any) => {
   console.log('onload')
 }
-const onclose = (ez) => {
+const onclose = (ez: any) => {
   // console.log("onclose: " + ez.detail)
 }
-const onerror = (ex) => {
+const onerror = (ex: any) => {
   // console.log("onerror: " + ex.detail.errCode + " message:: " + ex.detail.errMsg)
 }
 
-onMounted(() => {})
+onMounted(async () => {
+  // App启动时检查会员状态
+  await vipChecker.checkVipStatus(true)
+})
 
-const onadload = (e) => {
+const onadload = (e: any) => {
   console.log('广告数据加载成功')
 }
-const onadclose = (e) => {
+const onadclose = (e: any) => {
   console.log('onadclose')
 }
-const onaderror = (e) => {
+const onaderror = (e: any) => {
   // 广告加载失败
   console.log('onaderror: ')
 }
@@ -177,8 +217,15 @@ const showAd = () => {
   isLoading.value = true
 }
 
-const goToTrafficSigns = () => {
+const goToTrafficSigns = async () => {
   console.log('跳转到交通标志图示详解页面')
+
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设交通标志不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
   uni.navigateTo({
     url: '/pages/traffic-signs/traffic-signs',
     success: () => {

@@ -130,7 +130,7 @@
     </view>
 
     <!-- 知识点掌握度卡片 -->
-    <view class="knowledge-card">
+    <view class="knowledge-card" v-if="false">
       <view class="card-header">
         <text class="card-title">知识点掌握度</text>
       </view>
