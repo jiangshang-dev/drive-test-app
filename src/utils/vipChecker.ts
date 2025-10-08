@@ -40,6 +40,7 @@ class VipChecker {
       if (res.data && memberStore.profile) {
         memberStore.profile.vipLevel = res.data.vipLevel
         memberStore.profile.vipExpireTime = res.data.vipExpireTime
+        memberStore.profile.integral = res.data.integral
       }
 
       // 更新最后检查时间

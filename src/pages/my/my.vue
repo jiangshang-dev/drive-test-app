@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useMemberStore } from '@/stores'
 import { vipChecker } from '@/utils/vipChecker'
+import { http } from '@/utils/http'
 
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets } = uni.getSystemInfoSync()
@@ -330,6 +331,46 @@ onMounted(async () => {
   // 页面加载时检查会员状态
   await vipChecker.checkVipStatus(true)
 })
+
+// 视频广告部分
+const urlCallback = ref({})
+const rewardedAd = ref(null)
+const handleAdClose = async (e) => {
+  if (e.detail && e.detail.isEnded) {
+    let getTime = new Date().getTime()
+    urlCallback.value.userId = getTime
+    urlCallback.value.extra = getTime
+    console.log('urlCallback.value===', urlCallback.value)
+    // 获取会员
+    const res = await http({
+      url: '/apadwatchrecord/adWatchRecord',
+      method: 'GET',
+    })
+    if (res.data && memberStore.profile) {
+      showVipModal.value = false
+      memberStore.profile.vipLevel = res.data.vipLevel
+      memberStore.profile.vipExpireTime = res.data.vipExpireTime
+      memberStore.profile.integral = res.data.integral
+      // 提示框：升级VIP成功
+      uni.showToast({
+        title: '升级VIP成功',
+        icon: 'success',
+      })
+    }
+  }
+}
+const watchAdForVip = () => {
+  rewardedAd.value.show()
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${year}年${month}月${day}日`
+}
 </script>
 
 <template>
@@ -355,11 +396,19 @@ onMounted(async () => {
             }}</text>
             <view class="user-level">
               <text v-if="isVipUser" class="vip-badge">VIP会员</text>
+              <text v-if="isVipUser" class="level-text"
+                >到期时间：{{
+                  memberStore.profile && formatDate(memberStore.profile.vipExpireTime)
+                }}</text
+              >
               <text v-else class="normal-badge">普通用户</text>
               <text class="level-text"
-                >学习等级 Lv.{{ (memberStore.profile && memberStore.profile.level) || 1 }}</text
-              >
+                >等级 Lv.{{ (memberStore.profile && memberStore.profile.level) || 1 }}
+              </text>
             </view>
+            <text class="phone"
+              >积分 {{ (memberStore.profile && memberStore.profile.integral) || 1 }}
+            </text>
             <text class="phone">{{
               (memberStore.profile && memberStore.profile.mobile) || '未绑定手机'
             }}</text>
@@ -514,7 +563,7 @@ onMounted(async () => {
               <text class="benefit-text">优先客服支持</text>
             </view>
           </view>
-          <view class="vip-plans">
+          <view class="vip-plans" v-if="false">
             <view class="plan-item">
               <text class="plan-title">月卡</text>
               <text class="plan-price">￥29.9</text>
@@ -525,7 +574,10 @@ onMounted(async () => {
               <view class="discount-badge">的6折</view>
             </view>
           </view>
-          <button class="vip-btn">立即开通</button>
+          <button class="vip-btn" v-show="false">立即开通</button>
+
+          <!-- 视频广告按钮和组件  :disabled="isLoading" -->
+          <button class="vip-btn" @click="watchAdForVip">立即看视频得会员</button>
         </view>
       </view>
     </view>
@@ -555,6 +607,23 @@ onMounted(async () => {
           </view>
         </view>
       </view>
+    </view>
+
+    <!-- 视频广告组件 -->
+    <view class="video-ad-section">
+      <!-- 视频激励广告组件（默认隐藏，通过 ref 控制播放） -->
+      <ad-rewarded-video
+        :url-callback="urlCallback"
+        class="ad-video"
+        ref="rewardedAd"
+        adpid="1315895981"
+        :loadnext="true"
+        @close="handleAdClose"
+        v-slot:default="{ loading, error }"
+      >
+        <button :disabled="loading" :loading="loading" style="display: none"></button>
+        <view v-if="error">{{ error }}</view>
+      </ad-rewarded-video>
     </view>
   </view>
 </template>
@@ -625,6 +694,7 @@ onMounted(async () => {
   align-items: center;
   flex: 1;
   cursor: pointer;
+  width: 90%;
 }
 
 .avatar {
@@ -695,7 +765,7 @@ onMounted(async () => {
   gap: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 12px 20px;
+  padding: 8px 10px;
   border-radius: 25px;
   cursor: pointer;
   transition: transform 0.3s ease;
