@@ -277,11 +277,11 @@ const goToTrafficSigns = () => {
             ></image>
             <view class="video-info">
               <text class="video-title">交通标志图示详解</text>
-              <text class="video-duration">学习时长: 15分钟</text>
+              <!--              <text class="video-duration">学习时长: 15分钟</text>
               <view class="video-stats">
                 <text>👍 1.2k</text>
                 <text>❤️ 856</text>
-              </view>
+              </view>-->
             </view>
             <!-- <view class="vip-overlay">
               <text class="vip-lock">🔒</text>
