@@ -154,11 +154,12 @@
   </view>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { http } from '@/utils/http'
 import { useMemberStore } from '@/stores'
+import { buildUrlWithExamType } from '@/utils/examTypeHelper'
 
 // 定义题目接口
 interface Question {
@@ -334,8 +335,10 @@ const submitExam = () => {
 
 // 获取题目数据
 const getData = async (subject: number) => {
+  // 使用车型参数请求考试题目数据
+  const url = buildUrlWithExamType('/drive/examDriveQuestion', subject)
   const res: any = await http({
-    url: '/drive/examDriveQuestion?subject=' + subject,
+    url: url,
     method: 'GET',
   })
   questions.value = res.data || []

@@ -41,6 +41,8 @@ CREATE TABLE `tb_user_info` (
   `last_login_ip` varchar(64) NOT NULL DEFAULT '' COMMENT '最后登录IP',
   `device_id` varchar(128) NOT NULL DEFAULT '' COMMENT '设备ID',
   `status` tinyint(4) NOT NULL DEFAULT 1 COMMENT '用户状态：0-禁用，1-正常，2-锁定',
+  `comment_permission` tinyint(4) NOT NULL DEFAULT 1 COMMENT '评论权限：0-禁止评论，1-允许评论',
+  `violation_comment_count` int(11) NOT NULL DEFAULT 0 COMMENT '违规评论次数',
   `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
@@ -393,6 +395,10 @@ CREATE TABLE `tb_question_comment` (
   `like_count` bigint(20) NOT NULL DEFAULT 0 COMMENT '点赞数',
   `reply_count` bigint(20) NOT NULL DEFAULT 0 COMMENT '回复数',
   `is_hot` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否热门评论：0-否，1-是',
+  `audit_status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '审核状态：0-待审核，1-审核通过，2-审核不通过',
+  `audit_time` datetime DEFAULT NULL COMMENT '审核时间',
+  `audit_user_id` bigint(20) DEFAULT NULL COMMENT '审核人ID',
+  `audit_remark` varchar(512) NOT NULL DEFAULT '' COMMENT '审核备注',
   `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
@@ -401,6 +407,7 @@ CREATE TABLE `tb_question_comment` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_parent_comment_id` (`parent_comment_id`),
   KEY `idx_like_count` (`like_count`),
+  KEY `idx_audit_status` (`audit_status`),
   KEY `idx_gmt_create` (`gmt_create`),
   KEY `idx_is_deleted` (`is_deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='题目评论表';
@@ -422,6 +429,27 @@ CREATE TABLE `tb_user_like_record` (
   KEY `idx_target` (`target_type`, `target_id`),
   KEY `idx_is_deleted` (`is_deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户点赞记录表';
+
+-- 评论审核日志表
+DROP TABLE IF EXISTS `tb_comment_audit_log`;
+CREATE TABLE `tb_comment_audit_log` (
+  `id` bigint(20) NOT NULL COMMENT '日志ID，雪花算法生成',
+  `comment_id` bigint(20) NOT NULL COMMENT '评论ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `audit_status` tinyint(4) NOT NULL COMMENT '审核状态：0-待审核，1-审核通过，2-审核不通过',
+  `audit_user_id` bigint(20) DEFAULT NULL COMMENT '审核人ID',
+  `audit_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
+  `audit_remark` varchar(512) NOT NULL DEFAULT '' COMMENT '审核备注',
+  `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_comment_id` (`comment_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_audit_status` (`audit_status`),
+  KEY `idx_audit_user_id` (`audit_user_id`),
+  KEY `idx_is_deleted` (`is_deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论审核日志表';
 
 -- 用户学习统计表（反三范式，聚合统计数据）
 DROP TABLE IF EXISTS `tb_user_study_statistics`;
@@ -483,6 +511,43 @@ CREATE TABLE `tb_vip_order` (
   KEY `idx_payment_method` (`payment_method`),
   KEY `idx_is_deleted` (`is_deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='VIP订单表';
+
+-- 广告观看记录表
+DROP TABLE IF EXISTS `tb_ad_watch_record`;
+CREATE TABLE `tb_ad_watch_record` (
+  `id` bigint(20) NOT NULL COMMENT '记录ID，雪花算法生成',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `user_nickname` varchar(64) NOT NULL DEFAULT '' COMMENT '用户昵称（冗余）',
+  `ad_id` varchar(128) NOT NULL DEFAULT '' COMMENT '广告ID',
+  `ad_platform` varchar(32) NOT NULL DEFAULT '' COMMENT '广告平台：uni-ad/腾讯广告/穿山甲等',
+  `ad_type` varchar(32) NOT NULL DEFAULT '' COMMENT '广告类型：rewarded_video-激励视频，banner-横幅等',
+  `ad_position` varchar(64) NOT NULL DEFAULT '' COMMENT '广告位标识',
+  `watch_date` date NOT NULL COMMENT '观看日期',
+  `start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始观看时间',
+  `end_time` datetime DEFAULT NULL COMMENT '结束观看时间',
+  `is_completed` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否完整观看：0-否，1-是',
+  `reward_type` varchar(32) NOT NULL DEFAULT '' COMMENT '奖励类型：vip_days-会员天数，points-积分等',
+  `reward_amount` int(11) NOT NULL DEFAULT 0 COMMENT '奖励数量',
+  `reward_status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '奖励发放状态：0-未发放，1-已发放，2-发放失败',
+  `device_id` varchar(128) NOT NULL DEFAULT '' COMMENT '设备ID',
+  `platform_type` varchar(32) NOT NULL DEFAULT 'mp-weixin' COMMENT '平台类型：mp-weixin/app-plus/h5',
+  `ip_address` varchar(64) NOT NULL DEFAULT '' COMMENT 'IP地址',
+  `user_agent` varchar(512) NOT NULL DEFAULT '' COMMENT '用户代理',
+  `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_ad_id` (`ad_id`),
+  KEY `idx_watch_date` (`watch_date`),
+  KEY `idx_ad_platform` (`ad_platform`),
+  KEY `idx_ad_type` (`ad_type`),
+  KEY `idx_is_completed` (`is_completed`),
+  KEY `idx_reward_status` (`reward_status`),
+  KEY `idx_platform_type` (`platform_type`),
+  KEY `idx_user_date` (`user_id`, `watch_date`),
+  KEY `idx_is_deleted` (`is_deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='广告观看记录表';
 
 -- 多平台登录配置表
 DROP TABLE IF EXISTS `tb_login_config`;

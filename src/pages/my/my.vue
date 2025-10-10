@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useMemberStore } from '@/stores'
+import { useExamTypeStore } from '@/stores/modules/examType'
 import { vipChecker } from '@/utils/vipChecker'
 import { http } from '@/utils/http'
+import ExamTypeSelector from '@/components/ExamTypeSelector.vue'
 
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets } = uni.getSystemInfoSync()
 
 // 获取会员信息
 const memberStore = useMemberStore()
+
+// 获取车型信息
+const examTypeStore = useExamTypeStore()
+
+// 车型选择器引用
+const examTypeSelectorRef = ref()
 
 // 新增状态管理
 const showVipModal = ref(false)
@@ -46,6 +54,15 @@ const menuItems = ref([
   { icon: '👑', title: '会员中心', count: 0, path: '/pages/member-center/member-center' },
   { icon: '📋', title: '我的订单', count: 0, path: '/pages/order-list/order-list' },
 ])
+
+// 更换车型
+const changeExamType = () => {
+  // 显示车型选择器
+  if (examTypeSelectorRef.value) {
+    // 直接修改子组件的showSelector属性
+    examTypeSelectorRef.value.showSelector = true
+  }
+}
 
 // 跳转到错题本页面
 const goToWrongQuestions = async () => {
@@ -335,21 +352,24 @@ onMounted(async () => {
 // 视频广告部分
 const urlCallback = ref({})
 const rewardedAd = ref(null)
-const handleAdClose = async (e) => {
+const handleAdClose = async (e: any) => {
   if (e.detail && e.detail.isEnded) {
     let getTime = new Date().getTime()
     urlCallback.value.userId = getTime
     urlCallback.value.extra = getTime
     console.log('urlCallback.value===', urlCallback.value)
     // 获取会员
-    const res = await http({
+    const res: any = await http({
       url: '/apadwatchrecord/adWatchRecord',
       method: 'GET',
     })
     if (res.data && memberStore.profile) {
       showVipModal.value = false
+      // @ts-ignore
       memberStore.profile.vipLevel = res.data.vipLevel
+      // @ts-ignore
       memberStore.profile.vipExpireTime = res.data.vipExpireTime
+      // @ts-ignore
       memberStore.profile.integral = res.data.integral
       // 提示框：升级VIP成功
       uni.showToast({
@@ -360,10 +380,13 @@ const handleAdClose = async (e) => {
   }
 }
 const watchAdForVip = () => {
-  rewardedAd.value.show()
+  if (rewardedAd.value) {
+    // @ts-ignore
+    rewardedAd.value.show()
+  }
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: any) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   const year = date.getFullYear()
@@ -436,8 +459,22 @@ const formatDate = (dateString) => {
       </view>
     </view>
 
+    <!-- 车型选择卡片 -->
+    <view class="exam-type-card">
+      <view class="card-header">
+        <text class="card-title">准驾车型</text>
+      </view>
+      <view class="card-content">
+        <view class="exam-type-info">
+          <text class="exam-type-text">当前选择：</text>
+          <text class="exam-type-value">{{ examTypeStore.getExamTypeName() }}</text>
+        </view>
+        <button class="change-type-btn" @click="changeExamType">更换车型</button>
+      </view>
+    </view>
+
     <!-- 学习统计卡片 -->
-    <view class="stats-card">
+    <view class="stats-card" v-if="false">
       <view class="card-header">
         <text class="card-title">学习统计</text>
       </view>
@@ -462,7 +499,7 @@ const formatDate = (dateString) => {
     </view>
 
     <!-- 学习进度卡片 -->
-    <view class="progress-card">
+    <view class="progress-card" v-if="false">
       <view class="card-header">
         <text class="card-title">学习进度</text>
       </view>
@@ -502,34 +539,34 @@ const formatDate = (dateString) => {
           <text class="menu-count">156</text>
         </view>
         <!-- 学习记录 -->
-        <view class="menu-item" @click="goToStudyRecord">
+        <view class="menu-item" @click="goToStudyRecord" v-if="false">
           <text class="menu-icon">🏆</text>
           <text class="menu-title">学习记录</text>
           <text class="menu-count">15</text>
         </view>
         <!-- 考试记录 -->
-        <view class="menu-item" @click="goToExamRecord">
+        <view class="menu-item" @click="goToExamRecord" v-if="false">
           <text class="menu-icon">🎯</text>
           <text class="menu-title">考试记录</text>
           <text class="menu-count">8</text>
         </view>
         <!-- 学习统计 -->
-        <view class="menu-item" @click="goToStatistics">
+        <view class="menu-item" @click="goToStatistics" v-if="false">
           <text class="menu-icon">📊</text>
           <text class="menu-title">学习统计</text>
         </view>
         <!-- 积分商城 -->
-        <view class="menu-item" @click="goToPointsMall">
+        <view class="menu-item" @click="goToPointsMall" v-if="false">
           <text class="menu-icon">🎁</text>
           <text class="menu-title">积分商城</text>
         </view>
         <!-- 会员中心 -->
-        <view class="menu-item" @click="goToMemberCenter">
+        <view class="menu-item" @click="goToMemberCenter" v-if="false">
           <text class="menu-icon">👑</text>
           <text class="menu-title">会员中心</text>
         </view>
         <!-- 我的订单 -->
-        <view class="menu-item" @click="goToOrderList">
+        <view class="menu-item" @click="goToOrderList" v-if="false">
           <text class="menu-icon">📋</text>
           <text class="menu-title">我的订单</text>
         </view>
@@ -625,6 +662,9 @@ const formatDate = (dateString) => {
         <view v-if="error">{{ error }}</view>
       </ad-rewarded-video>
     </view>
+
+    <!-- 车型选择弹窗 -->
+    <ExamTypeSelector ref="examTypeSelectorRef" />
   </view>
 </template>
 
@@ -782,6 +822,62 @@ const formatDate = (dateString) => {
 
 .upgrade-icon {
   font-size: 16px;
+}
+
+/* 车型选择卡片 */
+.exam-type-card {
+  margin: 0 20px 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.exam-type-card .card-header {
+  padding: 20px 20px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.exam-type-card .card-content {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exam-type-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.exam-type-text {
+  font-size: 14px;
+  color: #666;
+  margin-right: 10px;
+}
+
+.exam-type-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.change-type-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.change-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 /* 统计卡片 */

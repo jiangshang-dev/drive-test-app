@@ -35,10 +35,10 @@ const goToVideos = async () => {
   console.log('跳转到交规视频页面')
 
   // 检查是否有VIP权限要求
-  const hasAccess = await vipChecker.checkVipAccess(true) // 假设视频页面需要VIP权限
+  /* const hasAccess = await vipChecker.checkVipAccess(true) // 假设视频页面需要VIP权限
   if (!hasAccess) {
     return // 如果没有权限，直接返回
-  }
+  } */
 
   uni.navigateTo({
     url: '/pages/videos/videos',
@@ -307,7 +307,7 @@ const goToTrafficSigns = async () => {
           <text class="grid-icon">❤️</text>
           <text class="grid-text">我的收藏</text>
         </view>
-        <view class="grid-item" @click="goToPoints()">
+        <view class="grid-item" @click="goToPoints()" v-if="false">
           <text class="grid-icon">🪙</text>
           <text class="grid-text">我的积分</text>
         </view>
@@ -357,7 +357,7 @@ const goToTrafficSigns = async () => {
       </view>
 
       <!-- 学习进度 -->
-      <view class="progress-section">
+      <view class="progress-section" v-if="false">
         <text class="section-title">学习进度</text>
         <view class="progress-card">
           <view class="progress-item">

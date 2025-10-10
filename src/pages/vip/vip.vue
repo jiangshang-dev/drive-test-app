@@ -1,6 +1,5 @@
 <template>
   <view class="container">
-
     <!-- VIP特权展示 -->
     <view class="vip-hero">
       <view class="hero-content">
@@ -14,11 +13,7 @@
     <view class="privileges-section">
       <text class="section-title">VIP专享特权</text>
       <view class="privileges-list">
-        <view
-          v-for="(privilege, index) in vipPrivileges"
-          :key="index"
-          class="privilege-item"
-        >
+        <view v-for="(privilege, index) in vipPrivileges" :key="index" class="privilege-item">
           <view class="privilege-icon">
             <text class="icon">{{ privilege.icon }}</text>
           </view>
@@ -32,7 +27,7 @@
     </view>
 
     <!-- 套餐选择 -->
-    <view class="plans-section">
+    <view class="plans-section" v-if="false">
       <text class="section-title">选择套餐</text>
       <view class="plans-list">
         <view
@@ -57,11 +52,7 @@
             <text class="discount">省¥{{ plan.originalPrice - plan.price }}</text>
           </view>
           <view class="plan-features">
-            <view
-              v-for="(feature, fIndex) in plan.features"
-              :key="fIndex"
-              class="feature-item"
-            >
+            <view v-for="(feature, fIndex) in plan.features" :key="fIndex" class="feature-item">
               <text class="feature-icon">✓</text>
               <text class="feature-text">{{ feature }}</text>
             </view>
@@ -87,12 +78,16 @@
 
     <!-- 立即开通按钮 -->
     <view class="action-section">
-      <button
+      <!-- <button
         class="purchase-btn"
         :disabled="!agreedToTerms"
         @click="proceedToPurchase"
       >
         立即开通 ¥{{ selectedPlanInfo.price }}
+      </button> -->
+
+      <button class="purchase-btn" :disabled="!agreedToTerms" @click="watchAdForVip">
+        立即看视频开通会员
       </button>
       <text class="purchase-note">开通后立即生效，支持7天无理由退款</text>
     </view>
@@ -109,11 +104,33 @@
         </view>
       </view>
     </view>
+
+    <!-- 视频广告组件 -->
+    <view class="video-ad-section">
+      <!-- 视频激励广告组件（默认隐藏，通过 ref 控制播放） -->
+      <ad-rewarded-video
+        :url-callback="urlCallback"
+        class="ad-video"
+        ref="rewardedAd"
+        adpid="1315895981"
+        :loadnext="true"
+        @close="handleAdClose"
+        v-slot:default="{ loading, error }"
+      >
+        <button :disabled="loading" :loading="loading" style="display: none"></button>
+        <view v-if="error">{{ error }}</view>
+      </ad-rewarded-video>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useMemberStore } from '@/stores'
+import { http } from '@/utils/http'
+
+// 获取会员信息
+const memberStore = useMemberStore()
 
 // 数据状态
 const selectedPlan = ref(1) // 默认选择中等套餐
@@ -127,33 +144,33 @@ const vipPrivileges = ref([
   {
     icon: '🎬',
     title: '全部视频解锁',
-    description: '观看所有交规视频教程，无限制学习'
+    description: '观看所有交规视频教程，无限制学习',
   },
   {
     icon: '📚',
     title: '题库全开放',
-    description: '刷遍所有题目，包含最新题库更新'
+    description: '刷遍所有题目，包含最新题库更新',
   },
   {
     icon: '🏆',
     title: '专属学习计划',
-    description: '个性化学习路径，提高通过率'
+    description: '个性化学习路径，提高通过率',
   },
   {
     icon: '📊',
     title: '详细学习报告',
-    description: '深度数据分析，了解学习进度'
+    description: '深度数据分析，了解学习进度',
   },
   {
     icon: '🚫',
     title: '无广告体验',
-    description: '享受纯净学习环境，专注备考'
+    description: '享受纯净学习环境，专注备考',
   },
   {
     icon: '💾',
     title: '离线下载',
-    description: '支持视频离线缓存，随时随地学习'
-  }
+    description: '支持视频离线缓存，随时随地学习',
+  },
 ])
 
 // VIP套餐数据
@@ -165,12 +182,7 @@ const vipPlans = ref([
     unit: '/月',
     originalPrice: null,
     recommended: false,
-    features: [
-      '30天VIP特权',
-      '全部视频解锁',
-      '题库完整开放',
-      '无广告体验'
-    ]
+    features: ['30天VIP特权', '全部视频解锁', '题库完整开放', '无广告体验'],
   },
   {
     title: '季度会员',
@@ -179,13 +191,7 @@ const vipPlans = ref([
     unit: '/3个月',
     originalPrice: 117,
     recommended: true,
-    features: [
-      '90天VIP特权',
-      '全部功能解锁',
-      '专属学习计划',
-      '优先客服支持',
-      '学习报告分析'
-    ]
+    features: ['90天VIP特权', '全部功能解锁', '专属学习计划', '优先客服支持', '学习报告分析'],
   },
   {
     title: '年度会员',
@@ -194,15 +200,43 @@ const vipPlans = ref([
     unit: '/年',
     originalPrice: 468,
     recommended: false,
-    features: [
-      '365天VIP特权',
-      '所有功能无限制',
-      '离线下载功能',
-      '一对一指导',
-      '终身更新保障'
-    ]
-  }
+    features: ['365天VIP特权', '所有功能无限制', '离线下载功能', '一对一指导', '终身更新保障'],
+  },
 ])
+
+const rewardedAd = ref(null)
+const watchAdForVip = () => {
+  if (!checkLogin()) return
+
+  if (rewardedAd.value) {
+    // @ts-ignore
+    rewardedAd.value.show()
+  }
+}
+
+// 检查用户是否已登录
+const checkLogin = () => {
+  const memberStore = useMemberStore()
+  if (!memberStore.profile) {
+    // 未登录，显示提示框
+    uni.showModal({
+      title: '提示',
+      content: '您还未登录，请先登录后再进行操作',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 跳转到登录页面
+          uni.navigateTo({
+            url: '/pages/login/login',
+          })
+        }
+      },
+    })
+    return false
+  }
+  return true
+}
 
 // 计算属性
 const selectedPlanInfo = computed(() => {
@@ -282,7 +316,7 @@ const proceedToPurchase = () => {
   if (!agreedToTerms.value) {
     uni.showToast({
       title: '请先同意用户协议',
-      icon: 'none'
+      icon: 'none',
     })
     return
   }
@@ -308,7 +342,7 @@ const proceedToPurchase = () => {
       },
       fail: () => {
         console.log('用户取消支付')
-      }
+      },
     })
   }
 }
@@ -320,7 +354,7 @@ const handleWeChatPay = () => {
   // 显示支付加载
   uni.showLoading({
     title: '正在启动微信支付...',
-    mask: true
+    mask: true,
   })
 
   // 模拟微信支付处理
@@ -351,9 +385,9 @@ const handleWeChatPay = () => {
             showCancel: false,
             success: () => {
               jumpToSuccessPage(planData, '微信支付')
-            }
+            },
           })
-        }
+        },
       })
     } else {
       // App端微信支付
@@ -369,7 +403,7 @@ const handleAliPay = () => {
   // 显示支付加载
   uni.showLoading({
     title: '正在启动支付宝支付...',
-    mask: true
+    mask: true,
   })
 
   // 模拟支付宝支付处理
@@ -393,9 +427,9 @@ const handleAliPay = () => {
           showCancel: false,
           success: () => {
             jumpToSuccessPage(planData, '支付宝支付')
-          }
+          },
         })
-      }
+      },
     })
   }, 1500)
 }
@@ -407,7 +441,7 @@ const jumpToSuccessPage = (planData: any, paymentMethod: string) => {
     planPrice: planData.price.toString(),
     paymentMethod: paymentMethod,
     orderId: `VIP${Date.now()}`,
-    discount: '0'
+    discount: '0',
   }).toString()
 
   uni.redirectTo({
@@ -419,9 +453,9 @@ const jumpToSuccessPage = (planData: any, paymentMethod: string) => {
       console.error('跳转支付成功页面失败:', err)
       uni.showToast({
         title: '跳转失败',
-        icon: 'error'
+        icon: 'error',
       })
-    }
+    },
   })
 }
 
@@ -429,6 +463,37 @@ onMounted(() => {
   // 可以在这里获取最新的VIP套餐信息
   console.log('VIP页面加载完成')
 })
+
+// 视频广告部分
+const urlCallback = ref({})
+const showVipModal = ref(false)
+const handleAdClose = async (e: any) => {
+  if (e.detail && e.detail.isEnded) {
+    let getTime = new Date().getTime()
+    urlCallback.value.userId = getTime
+    urlCallback.value.extra = getTime
+    console.log('urlCallback.value===', urlCallback.value)
+    // 获取会员
+    const res: any = await http({
+      url: '/apadwatchrecord/adWatchRecord',
+      method: 'GET',
+    })
+    if (res.data && memberStore.profile) {
+      showVipModal.value = false
+      // @ts-ignore
+      memberStore.profile.vipLevel = res.data.vipLevel
+      // @ts-ignore
+      memberStore.profile.vipExpireTime = res.data.vipExpireTime
+      // @ts-ignore
+      memberStore.profile.integral = res.data.integral
+      // 提示框：升级VIP成功
+      uni.showToast({
+        title: '升级VIP成功',
+        icon: 'success',
+      })
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
