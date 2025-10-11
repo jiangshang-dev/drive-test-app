@@ -166,7 +166,7 @@
     </view>
 
     <!-- 操作按钮 -->
-    <view class="action-buttons">
+    <view class="action-buttons" v-if="false">
       <button class="btn btn-directory" @click="showDirectory = true">题号目录</button>
       <button class="btn btn-comment" @click="toggleCommentSection">
         {{ showCommentSection ? '隐藏评论' : '查看评论' }} ({{ commentCount }})
