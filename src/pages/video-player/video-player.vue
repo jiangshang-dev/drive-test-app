@@ -45,7 +45,7 @@
           <text class="action-text">收藏</text>
         </view>
 
-        <view class="action-btn" @click="shareVideo">
+        <view class="action-btn" @click="shareVideo" v-if="false">
           <text class="action-icon">📤</text>
           <text class="action-text">分享</text>
         </view>
@@ -199,6 +199,7 @@ const videoInfo = ref({
   duration: '',
   views: '',
   likes: 0,
+  isLiked: false, // 添加点赞状态字段
   publishTime: '',
   tags: [] as string[],
 })
@@ -211,6 +212,7 @@ const sortType = ref('time') // 'time' | 'hot'
 const showReplyModal = ref(false)
 const replyTarget = ref<any>({})
 const replyText = ref('')
+const id = ref('')
 
 // 模拟评论数据
 const comments = ref([
@@ -285,18 +287,22 @@ const onTimeUpdate = (e: any) => {
   // console.log('当前播放时间:', currentTime)
 }
 
+// 点赞/取消点赞
 const toggleLike = () => {
-  isLiked.value = !isLiked.value
-  if (isLiked.value) {
-    likeCount.value++
-    uni.showToast({
-      title: '点赞成功',
-      icon: 'success',
-      duration: 1000,
-    })
-  } else {
-    likeCount.value--
-  }
+  isLikedApi(id.value).then((res) => {
+    console.log('res--like---', res)
+    isLiked.value = !isLiked.value
+    if (isLiked.value) {
+      likeCount.value++
+      uni.showToast({
+        title: '点赞成功',
+        icon: 'success',
+        duration: 1000,
+      })
+    } else {
+      likeCount.value--
+    }
+  })
 }
 
 const toggleFavorite = () => {
@@ -308,6 +314,7 @@ const toggleFavorite = () => {
   })
 }
 
+// 分享
 const shareVideo = () => {
   uni.showActionSheet({
     itemList: ['分享到微信', '分享到朋友圈', '复制链接'],
@@ -321,6 +328,7 @@ const shareVideo = () => {
   })
 }
 
+// 下载
 const downloadVideo = () => {
   if (!videoInfo.value.isVip) {
     uni.showModal({
@@ -341,6 +349,7 @@ const setSortType = (type: string) => {
   sortType.value = type
 }
 
+// 评论
 const onCommentFocus = () => {
   console.log('评论输入框获得焦点')
 }
@@ -349,6 +358,7 @@ const onCommentBlur = () => {
   console.log('评论输入框失去焦点')
 }
 
+// 发送评论
 const sendComment = () => {
   if (!commentText.value.trim()) return
 
@@ -415,6 +425,60 @@ const sendReply = () => {
   closeReplyModal()
 }
 
+const isLikedApi = async (id: string) => {
+  const url = `/aptrafficvideo/liked/${id}`
+  const res: any = await http({
+    url: url,
+    method: 'GET',
+  })
+  console.log('res*********', res)
+}
+
+// 查询视频信息
+const getVideoInfo = async (id: string) => {
+  const url = `/aptrafficvideo/${id}`
+  const res: any = await http({
+    url: url,
+    method: 'GET',
+  })
+
+  console.log('res.data.value---', res)
+  // 根据接口返回的数据格式，映射到页面需要的数据结构
+  if (res && res.data) {
+    videoInfo.value = {
+      id: res.data.id || '',
+      title: res.data.videoTitle || '',
+      description: res.data.videoDesc || '',
+      thumbnail: res.data.coverImage || '',
+      videoUrl: res.data.videoUrl || '',
+      aliyunVideoId: res.data.aliyunVideoId || '',
+      isVip: res.data.isVip || 0,
+      duration: res.data.videoDuration || '',
+      views: res.data.viewCount || '',
+      isLiked: res.data.isLike || false, // 点赞 isLike: true
+      likes: parseInt(res.data.likeCount) || 0,
+      publishTime: res.data.gmtCreate || '',
+      tags: res.data.tags ? (Array.isArray(res.data.tags) ? res.data.tags : [res.data.tags]) : [],
+    }
+
+    console.log('videoInfo.value---', videoInfo.value)
+    // 更新点赞状态和点赞数
+    isLiked.value = videoInfo.value.isLiked
+    likeCount.value = videoInfo.value.likes
+
+    // 如果有阿里云视频ID，获取播放地址
+    if (videoInfo.value.aliyunVideoId) {
+      getPlayerUrl(videoInfo.value.aliyunVideoId).then((url) => {
+        if (url) {
+          videoInfo.value.videoUrl = url
+        }
+      })
+    }
+  }
+
+  return res
+}
+
 // 根据阿里云视频ID获取播放地址
 const getPlayerUrl = async (aliyunVideoId: string) => {
   try {
@@ -470,70 +534,48 @@ const formatCommentTime = (date: string | Date) => {
 
 onMounted(() => {
   // 获取页面参数（从视频列表页通过 URL 传递的参数）
-  // 在视频列表页中通过 uni.navigateTo 跳转时传递了 video 参数:
-  // url: `/pages/video-player/video-player?video=${serializedVideo}`
+  // 在视频列表页中通过 uni.navigateTo 跳转时传递了 id 参数:
+  // url: `/pages/video-player/video-player?id=${videoId}`
   const pages = getCurrentPages()
   const currentPage: any = pages[pages.length - 1]
   const options = currentPage.options || {}
 
   console.log('currentPage.value---', currentPage)
   console.log('options.value---', options)
-  console.log('options.value---', options.video)
-  // 获取视频信息（实际项目中应该从上一个页面传递过来或通过接口获取）
-  // 解析从视频列表页传递过来的序列化视频对象
-  const videoParam = options.video ? JSON.parse(options.video) : null
+  console.log('options.id---', options.id)
 
-  if (videoParam) {
-    // 从传递的视频对象中获取信息
-    videoInfo.value = {
-      id: videoParam.id || '',
-      title: videoParam.videoTitle || videoParam.title || '',
-      description: videoParam.videoDesc || videoParam.description || '',
-      thumbnail: videoParam.coverImage || videoParam.thumbnail || '',
-      videoUrl: videoParam.videoUrl || '',
-      aliyunVideoId: videoParam.aliyunVideoId || '',
-      isVip: videoParam.isVip || 0,
-      duration: videoParam.videoDuration || videoParam.duration || '',
-      views: videoParam.viewCount || videoParam.views || '',
-      likes: videoParam.likeCount || videoParam.likes || 0,
-      publishTime: videoParam.gmtCreate || videoParam.publishTime || '',
-      tags: videoParam.tags
-        ? Array.isArray(videoParam.tags)
-          ? videoParam.tags
-          : [videoParam.tags]
-        : [],
-    }
+  id.value = options.id
 
-    likeCount.value = videoInfo.value.likes
+  // 获取视频ID
+  let videoId = ''
 
-    console.log('videoInfo.value---', videoInfo.value)
-    // 如果有阿里云视频ID，获取播放地址
-    if (videoInfo.value.aliyunVideoId) {
-      getPlayerUrl(videoInfo.value.aliyunVideoId).then((url) => {
-        if (url) {
-          videoInfo.value.videoUrl = url
-        }
-      })
-    }
+  // 从id参数中获取视频ID
+  if (options.id) {
+    videoId = options.id
+  }
+
+  // 如果获取到视频ID，则调用接口获取视频详情
+  if (videoId) {
+    getVideoInfo(videoId)
   } else {
     // 兼容之前的通过ID获取的方式
-    const videoId = options.id || '1'
+    videoId = '1'
 
     // 模拟视频数据
     videoInfo.value = {
       id: videoId,
-      title: '交通标志完全指南',
-      description:
-        '本视频详细讲解各种交通标志的含义和应用场景，包括警告标志、禁令标志、指示标志等。通过实际案例分析，帮助学员更好地理解和记忆交通标志，提高驾考通过率。',
-      thumbnail: 'https://via.placeholder.com/300x180/667eea/white?text=交通标志',
-      videoUrl: 'https://www.example.com/video.mp4', // 实际项目中应该是真实的视频URL
-      aliyunVideoId: '80aaa547a36171f0810a5017e1e90102', // 示例阿里云视频ID
-      isVip: 0, // 非VIP视频
-      duration: '15:30',
-      views: '12.5k',
-      likes: 856,
-      publishTime: '2024-01-15',
-      tags: ['交通标志', '科目一', '理论考试', '驾考必备'],
+      title: '',
+      description: '',
+      thumbnail: '',
+      videoUrl: '',
+      aliyunVideoId: '',
+      isVip: 0,
+      duration: '',
+      views: '',
+      likes: 0,
+      isLiked: false,
+      publishTime: '',
+      tags: [],
     }
 
     likeCount.value = videoInfo.value.likes
@@ -547,10 +589,6 @@ onMounted(() => {
       }
     })
   }
-
-  // 检查用户是否已点赞和收藏（实际项目中从服务器获取）
-  // isLiked.value = checkUserLikeStatus(videoId)
-  // isFavorited.value = checkUserFavoriteStatus(videoId)
 })
 
 onUnmounted(() => {

@@ -79,7 +79,7 @@
                 <text class="meta-icon">👍</text>
                 <text class="meta-text">{{ video.likeCount }}</text>
               </view>
-              <view class="meta-item">
+              <view class="meta-item" v-if="false">
                 <text class="meta-icon">⭐</text>
                 <text class="meta-text">{{ video.rating }}</text>
               </view>
@@ -358,10 +358,10 @@ const playVideo = (video: VideoItem) => {
 
   // 跳转到视频播放页面，对视频对象进行序列化处理
   console.log('跳转到视频播放页面', video)
-  const serializedVideo = JSON.stringify(video)
-  console.log('serializedVideo-', serializedVideo)
+  const serializedVideo = JSON.parse(JSON.stringify(video))
+  console.log('serializedVideo-', serializedVideo.id)
   uni.navigateTo({
-    url: `/pages/video-player/video-player?video=${serializedVideo}`,
+    url: `/pages/video-player/video-player?id=${serializedVideo.id}`,
     success: () => {
       console.log('视频播放页面跳转成功')
     },
