@@ -21,7 +21,7 @@
       <view class="question-card">
         <!-- 题目内容 -->
         <view class="question-content">
-          <text class="question-number">第{{ questionInfo.questionId || questionId }}题</text>
+          <!--          <text class="question-number">第{{ questionInfo.questionId || questionId }}题</text>-->
           <text class="question-text">{{ questionInfo.questionContent }}</text>
 
           <!-- 题目图片 -->
@@ -359,14 +359,18 @@ onLoad((options: any) => {
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 8px 0;
+  padding: 8px 15px;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding-top: calc(8px + 14px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  box-sizing: border-box;
 }
 
 .header-left {
@@ -374,6 +378,7 @@ onLoad((options: any) => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  min-width: 60px;
 }
 
 .back-icon {
@@ -390,16 +395,25 @@ onLoad((options: any) => {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 0 10px;
+  min-width: 0; /* 允许标题在空间不足时收缩 */
 }
 
 .title {
   font-size: 18px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 
 .header-right {
-  width: 60px;
+  min-width: 60px;
   text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .favorite-icon {
