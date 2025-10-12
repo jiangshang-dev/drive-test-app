@@ -21,6 +21,15 @@
         <text class="upgrade-btn" @click="showVipModal = true">立即开通</text>
       </view>
     </view>
+    <view class="vip-notice" v-if="isVipUser">
+      <view class="notice-content">
+        <text class="notice-icon">👑</text>
+        <view class="notice-text">
+          <text class="notice-title">您已成为VIP会员</text>
+          <text class="notice-desc">解锁全部交规视频教程</text>
+        </view>
+      </view>
+    </view>
 
     <!-- 快速入口卡片 -->
     <view class="quick-access-card">
@@ -205,6 +214,7 @@ import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { http } from '@/utils/http'
 import { useMemberStore } from '@/stores'
+import { vipChecker } from '@/utils/vipChecker'
 
 // 类型定义
 interface DictType {
@@ -262,7 +272,7 @@ interface VideoResponse {
 }
 
 // 数据状态
-const isVipUser = ref(false) // 模拟VIP状态
+const isVipUser = ref(false)
 const selectedCategory = ref('all')
 const showFilterModal = ref(false)
 const showVipModal = ref(false)
@@ -342,14 +352,36 @@ const checkLogin = () => {
   return !!memberStore.profile
 }
 
+// 检查用户VIP状态
+const checkUserVipStatus = async () => {
+  const memberStore = useMemberStore()
+  // 如果没有登录，直接返回false
+  if (!memberStore.profile) {
+    return false
+  }
+
+  // 使用vipChecker工具检查会员状态
+  try {
+    const isVip = await vipChecker.checkVipStatus(true) // 强制检查，不使用缓存
+    console.log('用户VIP状态:', isVip)
+    return isVip
+  } catch (error) {
+    console.error('检查VIP状态失败:', error)
+    // 如果检查失败，回退到使用本地存储的状态
+    return (memberStore.profile.vipLevel || 0) > 0
+  }
+}
+
 // 播放视频
-const playVideo = (video: VideoItem) => {
+const playVideo = async (video: VideoItem) => {
   // 检查用户是否登录
   if (!checkLogin()) {
     showLoginModal.value = true
     return
   }
 
+  console.log('video-------ppp', video)
+  console.log('video-------isVipUser---', isVipUser.value)
   // 检查是否为VIP视频且用户不是VIP
   if (video.isVip === 1 && !isVipUser.value) {
     showVipModal.value = true
@@ -544,8 +576,10 @@ const goToTrafficSigns = () => {
 }
 
 onMounted(() => {
-  // 初始化时可以从服务器获取用户VIP状态
-  // isVipUser.value = checkUserVipStatus()
+  // 初始化时从服务器获取用户VIP状态
+  checkUserVipStatus().then((status) => {
+    isVipUser.value = status
+  })
 
   // 获取视频分类数据
   getDictType()

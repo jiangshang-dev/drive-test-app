@@ -16,6 +16,8 @@
         @ended="onVideoEnded"
         @timeupdate="onTimeUpdate"
       ></video>
+      <!-- VIP标识 -->
+      <view v-if="videoInfo.isVip === 1" class="vip-badge">VIP</view>
     </view>
 
     <!-- 视频信息区域 -->
@@ -186,6 +188,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { http } from '@/utils/http'
 import { useMemberStore } from '@/stores'
+import { vipChecker } from '@/utils/vipChecker'
 
 // 数据状态
 const videoInfo = ref({
@@ -213,6 +216,7 @@ const showReplyModal = ref(false)
 const replyTarget = ref<any>({})
 const replyText = ref('')
 const id = ref('')
+const isVipUser = ref(false) // 添加VIP用户状态
 
 // 评论数据
 const comments = ref<any[]>([])
@@ -698,7 +702,31 @@ onMounted(() => {
       }
     })
   }
+
+  // 检查用户VIP状态
+  checkUserVipStatus()
 })
+
+// 检查用户VIP状态
+const checkUserVipStatus = async () => {
+  const memberStore = useMemberStore()
+  // 如果没有登录，直接返回false
+  if (!memberStore.profile) {
+    isVipUser.value = false
+    return
+  }
+
+  // 使用vipChecker工具检查会员状态
+  try {
+    const isVip = await vipChecker.checkVipStatus(true) // 强制检查，不使用缓存
+    console.log('用户VIP状态:', isVip)
+    isVipUser.value = isVip
+  } catch (error) {
+    console.error('检查VIP状态失败:', error)
+    // 如果检查失败，回退到使用本地存储的状态
+    isVipUser.value = (memberStore.profile.vipLevel || 0) > 0
+  }
+}
 
 onUnmounted(() => {
   // 页面销毁时可以保存播放进度等信息
@@ -1165,5 +1193,19 @@ onUnmounted(() => {
 .confirm-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+/* VIP标识样式 */
+.vip-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(45deg, #ffd700, #ffa500);
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: bold;
+  z-index: 10;
 }
 </style>
