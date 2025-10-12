@@ -119,10 +119,10 @@
             <view class="comment-actions">
               <view
                 class="comment-action"
-                :class="{ active: comment.isLiked }"
+                :class="{ active: comment.isLikeComment }"
                 @click="toggleCommentLike(comment)"
               >
-                <text class="action-icon">{{ comment.isLiked ? '❤️' : '🤍' }}</text>
+                <text class="action-icon">{{ comment.isLikeComment ? '❤️' : '🤍' }}</text>
                 <text class="action-count">{{ comment.likeCount || '' }}</text>
               </view>
 
@@ -214,46 +214,8 @@ const replyTarget = ref<any>({})
 const replyText = ref('')
 const id = ref('')
 
-// 模拟评论数据
-const comments = ref([
-  {
-    id: 1,
-    username: '学车小白',
-    avatar: 'https://via.placeholder.com/40x40/667eea/white?text=学',
-    content: '讲解得很详细，终于理解了这些交通标志的含义！',
-    createTime: new Date(Date.now() - 3600000),
-    likeCount: 12,
-    isLiked: false,
-    replies: [
-      {
-        id: 101,
-        username: '驾考达人',
-        content: '是的，这个视频确实很棒',
-        createTime: new Date(Date.now() - 1800000),
-      },
-    ],
-  },
-  {
-    id: 2,
-    username: '准备考试中',
-    avatar: 'https://via.placeholder.com/40x40/4caf50/white?text=准',
-    content: '马上就要考试了，这个视频来得正是时候！',
-    createTime: new Date(Date.now() - 7200000),
-    likeCount: 8,
-    isLiked: true,
-    replies: [],
-  },
-  {
-    id: 3,
-    username: '新手司机',
-    avatar: 'https://via.placeholder.com/40x40/ff9800/white?text=新',
-    content: '已经拿到驾照了，但还是想复习一下，感谢分享！',
-    createTime: new Date(Date.now() - 14400000),
-    likeCount: 5,
-    isLiked: false,
-    replies: [],
-  },
-])
+// 评论数据
+const comments = ref<any[]>([])
 
 // 计算属性
 const sortedComments = computed(() => {
@@ -359,36 +321,125 @@ const onCommentBlur = () => {
 }
 
 // 发送评论
-const sendComment = () => {
+const sendComment = async () => {
   if (!commentText.value.trim()) return
 
-  const newComment = {
-    id: Date.now(),
-    username: '当前用户', // 实际应用中从用户状态获取
-    avatar: 'https://via.placeholder.com/40x40/9c27b0/white?text=我',
-    content: commentText.value.trim(),
-    createTime: new Date(),
-    likeCount: 0,
-    isLiked: false,
-    replies: [],
+  // 获取用户信息
+  const memberStore = useMemberStore()
+  // 修复用户信息访问问题
+  const userInfo: any = memberStore.profile
+  const userId = userInfo?.id
+
+  if (!userId) {
+    uni.showToast({
+      title: '请先登录',
+      icon: 'none',
+    })
+    return
   }
 
-  comments.value.unshift(newComment)
-  commentText.value = ''
+  try {
+    console.log('videoInfo.value-----', videoInfo.value)
+    // 发布评论，设置默认状态为待审核
+    const res: any = await http({
+      url: '/apvideocomment',
+      method: 'POST',
+      data: {
+        videoId: videoInfo.value.id,
+        userId: userId,
+        commentContent: commentText.value.trim(),
+      },
+    })
 
-  uni.showToast({
-    title: '评论成功',
-    icon: 'success',
-  })
+    if (res?.code === 0) {
+      // 清空输入框
+      commentText.value = ''
+
+      // 提示用户评论已提交，正在审核中
+      uni.showToast({
+        title: '评论正在审核中',
+        icon: 'success',
+        duration: 2000,
+      })
+    } else {
+      uni.showToast({
+        title: res.msg,
+        icon: 'error',
+      })
+    }
+  } catch (error) {
+    uni.showToast({
+      title: '评论发布失败',
+      icon: 'error',
+    })
+    console.error('评论发布失败:', error)
+  }
+}
+
+// 获取视频评论
+const getVideoComments = async (videoId: string) => {
+  try {
+    const res: any = await http({
+      url: `/apvideocomment/byVideo/${videoId}`,
+      method: 'GET',
+    })
+
+    if (res?.code === 0 && res.data) {
+      // 先转换所有评论数据
+      const allComments = res.data.map((comment: any) => ({
+        id: comment.id,
+        username: comment.phone || '匿名用户',
+        avatar: comment.userAvatar || 'https://via.placeholder.com/40x40/667eea/white?text=用',
+        content: comment.commentContent,
+        createTime: comment.gmtCreate,
+        likeCount: comment.likeCount || 0,
+        isLikeComment: comment.isLikeComment || 0, // 修复：正确映射点赞状态字段
+        replies: [],
+        parentCommentId: comment.parentCommentId || null, // 保留父评论ID，确保为null或具体值
+      }))
+
+      // 分离父评论和子评论
+      const parentComments = allComments.filter((comment: any) => !comment.parentCommentId)
+      const childComments = allComments.filter((comment: any) => comment.parentCommentId)
+
+      // 将子评论添加到对应的父评论下
+      childComments.forEach((child: any) => {
+        const parent = parentComments.find((p: any) => p.id === child.parentCommentId)
+        if (parent) {
+          if (!parent.replies) {
+            parent.replies = []
+          }
+          parent.replies.push(child)
+        }
+      })
+
+      // 设置评论数据
+      comments.value = parentComments
+    }
+  } catch (error) {
+    console.error('获取评论失败:', error)
+    uni.showToast({
+      title: '获取评论失败',
+      icon: 'error',
+    })
+  }
 }
 
 const toggleCommentLike = (comment: any) => {
-  comment.isLiked = !comment.isLiked
-  if (comment.isLiked) {
-    comment.likeCount = (comment.likeCount || 0) + 1
-  } else {
-    comment.likeCount = Math.max((comment.likeCount || 0) - 1, 0)
-  }
+  isLikedCommentApi(comment.id).then((res) => {
+    console.log('res--like---', res)
+    comment.isLikeComment = !comment.isLikeComment
+    if (comment.isLikeComment) {
+      comment.likeCount = (comment.likeCount || 0) + 1
+      uni.showToast({
+        title: '点赞成功',
+        icon: 'success',
+        duration: 1000,
+      })
+    } else {
+      comment.likeCount = Math.max((comment.likeCount || 0) - 1, 0)
+    }
+  })
 }
 
 const replyToComment = (comment: any) => {
@@ -402,31 +453,84 @@ const closeReplyModal = () => {
   replyText.value = ''
 }
 
-const sendReply = () => {
+// 发送回复
+const sendReply = async () => {
   if (!replyText.value.trim()) return
 
-  const newReply = {
-    id: Date.now(),
-    username: '当前用户',
-    content: replyText.value.trim(),
-    createTime: new Date(),
+  // 获取用户信息
+  const memberStore = useMemberStore()
+  const userInfo: any = memberStore.profile
+  const userId = userInfo?.id
+
+  if (!userId) {
+    uni.showToast({
+      title: '请先登录',
+      icon: 'none',
+    })
+    return
   }
 
-  if (!replyTarget.value.replies) {
-    replyTarget.value.replies = []
+  try {
+    // 发送回复请求
+    const res: any = await http({
+      url: '/apvideocomment/reply',
+      method: 'POST',
+      data: {
+        parentId: replyTarget.value.id,
+        replyContent: replyText.value.trim(),
+      },
+    })
+
+    if (res?.code === 0) {
+      // 添加回复到本地列表
+      const newReply = {
+        id: res.data.id,
+        username: res.data.phone || '匿名用户',
+        content: res.data.commentContent,
+        createTime: res.data.gmtCreate,
+      }
+
+      if (!replyTarget.value.replies) {
+        replyTarget.value.replies = []
+      }
+      replyTarget.value.replies.push(newReply)
+
+      // 清空回复输入框
+      replyText.value = ''
+
+      // 关闭弹窗
+      closeReplyModal()
+
+      uni.showToast({
+        title: '正在审核中',
+        icon: 'success',
+      })
+    } else {
+      uni.showToast({
+        title: res.msg,
+        icon: 'error',
+      })
+    }
+  } catch (error) {
+    uni.showToast({
+      title: '回复失败',
+      icon: 'error',
+    })
+    console.error('回复失败:', error)
   }
-  replyTarget.value.replies.push(newReply)
-
-  uni.showToast({
-    title: '回复成功',
-    icon: 'success',
-  })
-
-  closeReplyModal()
 }
 
 const isLikedApi = async (id: string) => {
   const url = `/aptrafficvideo/liked/${id}`
+  const res: any = await http({
+    url: url,
+    method: 'GET',
+  })
+  console.log('res*********', res)
+}
+
+const isLikedCommentApi = async (id: string) => {
+  const url = `/apvideocomment/liked/${id}`
   const res: any = await http({
     url: url,
     method: 'GET',
@@ -473,6 +577,11 @@ const getVideoInfo = async (id: string) => {
           videoInfo.value.videoUrl = url
         }
       })
+    }
+
+    // 获取视频评论
+    if (videoInfo.value.id) {
+      getVideoComments(videoInfo.value.id)
     }
   }
 
