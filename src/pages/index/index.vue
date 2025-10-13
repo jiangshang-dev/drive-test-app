@@ -103,6 +103,28 @@ const goToFavorites = async () => {
   })
 }
 
+const goToAI = async () => {
+  // 检查是否有VIP权限要求
+  const hasAccess = await vipChecker.checkVipAccess(false) // 假设积分商城不需要VIP权限
+  if (!hasAccess) {
+    return // 如果没有权限，直接返回
+  }
+
+  uni.navigateTo({
+    url: '/pages/aichat/aichat',
+    success: () => {
+      console.log('AI页面跳转成功')
+    },
+    fail: (err) => {
+      console.error('AI页面跳转失败:', err)
+      uni.showToast({
+        title: '跳转失败',
+        icon: 'error',
+      })
+    },
+  })
+}
+
 const goToPoints = async () => {
   console.log('跳转到积分商城页面')
 
@@ -258,7 +280,7 @@ const goToTrafficSigns = async () => {
     <!-- 主要内容区域 -->
     <view class="main-content">
       <!-- 轮播图区域 -->
-      <view class="banner-section">
+      <view class="banner-section" v-if="false">
         <view class="banner">
           <view class="banner-item active">
             <image
@@ -310,6 +332,10 @@ const goToTrafficSigns = async () => {
         <view class="grid-item" @click="goToPoints()" v-if="false">
           <text class="grid-icon">🪙</text>
           <text class="grid-text">我的积分</text>
+        </view>
+        <view class="grid-item" @click="goToAI()">
+          <text class="grid-icon">🤖</text>
+          <text class="grid-text">AI助手</text>
         </view>
       </view>
 

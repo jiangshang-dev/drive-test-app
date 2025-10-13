@@ -166,9 +166,9 @@
     </view>
 
     <!-- 操作按钮 -->
-    <view class="action-buttons" v-if="false">
+    <view class="action-buttons">
       <button class="btn btn-directory" @click="showDirectory = true">题号目录</button>
-      <button class="btn btn-comment" @click="toggleCommentSection">
+      <button class="btn btn-comment" @click="toggleCommentSection" v-if="false">
         {{ showCommentSection ? '隐藏评论' : '查看评论' }} ({{ commentCount }})
       </button>
       <!-- <button class="btn btn-refresh" @click="getData2(sub)">换一组题</button> -->

@@ -160,6 +160,12 @@
       "style": {
         "navigationBarTitleText": "题目详情"
       }
+    },
+    {
+      "path": "pages/aichat/aichat",
+      "style": {
+        "navigationBarTitleText": "题目详情"
+      }
     }
   ],
   "globalStyle": {
