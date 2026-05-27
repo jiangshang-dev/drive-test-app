@@ -336,6 +336,7 @@ const goToTrafficSigns = async () => {
         <view class="grid-item" @click="goToAI()">
           <text class="grid-icon">🤖</text>
           <text class="grid-text">AI助手</text>
+          <view class="vip-badge">VIP</view>
         </view>
       </view>
 
