@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useMemberStore } from '@/stores'
 import { vipChecker } from '@/utils/vipChecker'
 
@@ -10,16 +10,44 @@ const isLoading = ref(false)
 const memoryId = ref(Date.now().toString())
 const inputFocused = ref(false)
 const scrollView = ref(null)
+const isLoginChecked = ref(false)
+const isLoggedIn = ref(false)
+const isVip = ref(false)
+
+// 计算属性：是否显示登录覆盖层
+const showLoginOverlay = computed(() => {
+  return isLoginChecked.value && !isLoggedIn.value
+})
+
+// 计算属性：是否显示会员覆盖层
+const showVipOverlay = computed(() => {
+  return isLoginChecked.value && isLoggedIn.value && !isVip.value
+})
+
+// 检查用户状态
+const checkUserStatus = async () => {
+  const memberStore = useMemberStore()
+
+  // 检查登录状态
+  isLoggedIn.value = !!memberStore.profile
+  isLoginChecked.value = true
+
+  if (isLoggedIn.value) {
+    // 检查会员状态
+    isVip.value = await vipChecker.checkVipStatus()
+  }
+}
 
 // 新建会话
 const startNewConversation = async () => {
-  // 检查用户是否为VIP
-  const isVip = await vipChecker.checkVipStatus()
-  if (!isVip) {
-    uni.showToast({
-      title: '请开通会员以使用AI对话功能',
-      icon: 'none',
-    })
+  // 检查用户状态
+  await checkUserStatus()
+
+  if (!isLoggedIn.value) {
+    return
+  }
+
+  if (!isVip.value) {
     return
   }
 
@@ -35,13 +63,14 @@ const startNewConversation = async () => {
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
 
-  // 检查用户是否为VIP
-  const isVip = await vipChecker.checkVipStatus()
-  if (!isVip) {
-    uni.showToast({
-      title: '请开通会员以使用AI对话功能',
-      icon: 'none',
-    })
+  // 检查用户状态
+  await checkUserStatus()
+
+  if (!isLoggedIn.value) {
+    return
+  }
+
+  if (!isVip.value) {
     return
   }
 
@@ -71,7 +100,7 @@ const sendMessage = async () => {
     // 使用uni.request替代fetch以更好地兼容UniApp
     uni.request({
       url: '/ai/chat',
-      method: 'GET',
+      method: 'POST',
       header: {
         'Content-Type': 'application/json',
         Authorization: token,
@@ -122,6 +151,8 @@ const sendMessage = async () => {
 
 // 处理输入框焦点
 const handleInputFocus = () => {
+  // 检查用户状态
+  checkUserStatus()
   inputFocused.value = true
 }
 
@@ -129,17 +160,24 @@ const handleInputBlur = () => {
   inputFocused.value = false
 }
 
+// 去登录
+const goToLogin = () => {
+  uni.navigateTo({
+    url: '/pages/login/login',
+  })
+}
+
+// 去开通会员
+const goToVip = () => {
+  uni.navigateTo({
+    url: '/pages/vip/vip',
+  })
+}
+
 // 初始化
 onMounted(async () => {
-  // 检查用户是否为VIP
-  const isVip = await vipChecker.checkVipStatus()
-  if (!isVip) {
-    // 禁用输入框并提示开通会员
-    uni.showToast({
-      title: '请开通会员以使用AI对话功能',
-      icon: 'none',
-    })
-  }
+  // 检查用户状态
+  await checkUserStatus()
 
   messages.value.push({
     role: 'assistant',
@@ -183,7 +221,7 @@ onMounted(async () => {
         <textarea
           v-model="userInput"
           class="message-input"
-          :disabled="isLoading"
+          :disabled="isLoading || showLoginOverlay || showVipOverlay"
           placeholder="请输入您的问题..."
           @focus="handleInputFocus"
           @blur="handleInputBlur"
@@ -193,12 +231,30 @@ onMounted(async () => {
         <button
           class="send-button"
           @click="sendMessage"
-          :disabled="!userInput.trim() || isLoading"
-          :class="{ 'send-disabled': !userInput.trim() || isLoading }"
+          :disabled="!userInput.trim() || isLoading || showLoginOverlay || showVipOverlay"
+          :class="{
+            'send-disabled': !userInput.trim() || isLoading || showLoginOverlay || showVipOverlay,
+          }"
         >
           <text v-if="!isLoading">发送</text>
           <text v-else class="loading-text">...</text>
         </button>
+      </view>
+
+      <!-- 未登录提示 -->
+      <view v-if="showLoginOverlay" class="overlay-container">
+        <view class="overlay-content">
+          <text class="overlay-text">登录后即可使用AI助手功能</text>
+          <button class="overlay-button small-button" @click="goToLogin">去登录</button>
+        </view>
+      </view>
+
+      <!-- 非会员提示 -->
+      <view v-if="showVipOverlay" class="overlay-container">
+        <view class="overlay-content">
+          <text class="overlay-text">开通会员即可使用AI助手功能</text>
+          <button class="overlay-button small-button" @click="goToVip">去开通</button>
+        </view>
       </view>
     </view>
   </view>
@@ -332,6 +388,7 @@ onMounted(async () => {
   padding: 10px 15px;
   border-top: 1px solid #e0e0e0;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .input-wrapper {
@@ -391,6 +448,57 @@ onMounted(async () => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* 覆盖层容器 */
+.overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 20px;
+  pointer-events: none; /* 允许点击穿透到输入框 */
+}
+
+.overlay-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  pointer-events: auto; /* 恢复按钮的点击事件 */
+}
+
+.overlay-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.overlay-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  height: 32px; /* 与输入框高度一致 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.small-button {
+  padding: 4px 12px;
+  font-size: 13px;
+  height: auto;
+  min-height: 30px;
 }
 
 /* 响应式调整 */
