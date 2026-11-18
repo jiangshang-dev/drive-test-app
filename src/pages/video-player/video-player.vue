@@ -809,7 +809,7 @@ onUnmounted(() => {
 }
 
 .action-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -851,7 +851,7 @@ onUnmounted(() => {
 
 .tag-item {
   background: #f0f0f0;
-  color: #667eea;
+  color: #0f766e;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 12px;
@@ -889,7 +889,7 @@ onUnmounted(() => {
 }
 
 .sort-btn.active {
-  color: #667eea;
+  color: #0f766e;
   font-weight: bold;
 }
 
@@ -917,12 +917,12 @@ onUnmounted(() => {
 }
 
 .comment-input:focus {
-  border-color: #667eea;
+  border-color: #0f766e;
   outline: none;
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   border-radius: 20px;
@@ -1020,7 +1020,7 @@ onUnmounted(() => {
 }
 
 .comment-action.active {
-  color: #667eea;
+  color: #0f766e;
 }
 
 .action-count,
@@ -1047,7 +1047,7 @@ onUnmounted(() => {
 }
 
 .reply-author {
-  color: #667eea;
+  color: #0f766e;
   font-weight: bold;
 }
 
@@ -1105,7 +1105,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -1143,7 +1143,7 @@ onUnmounted(() => {
 }
 
 .reply-username {
-  color: #667eea;
+  color: #0f766e;
   font-weight: bold;
   margin-left: 5px;
 }
@@ -1161,7 +1161,7 @@ onUnmounted(() => {
 }
 
 .reply-textarea:focus {
-  border-color: #667eea;
+  border-color: #0f766e;
   outline: none;
 }
 
@@ -1186,7 +1186,7 @@ onUnmounted(() => {
 }
 
 .confirm-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 

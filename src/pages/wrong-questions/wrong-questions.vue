@@ -1,13 +1,7 @@
 <template>
   <view class="page">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">错题本</text>
-        <view class="header-right">
-          <text class="clear-icon" @click="clearWrongQuestions">清空</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="clearWrongQuestions">清空</text>
     </view>
 
     <!-- 主要内容区域 -->
@@ -328,7 +322,7 @@ onMounted(() => {
 
 /* 顶部导航栏样式 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 20rpx 0 30rpx;
   position: sticky;
@@ -411,7 +405,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 4rpx;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #0f766e 0%, #115e59 100%);
 }
 
 .stat-item:active {
@@ -423,7 +417,7 @@ onMounted(() => {
   display: block;
   font-size: 40rpx;
   font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 12rpx;
@@ -459,14 +453,14 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.4);
 }
 
 .tab-item:not(.active):active {
   background: #f8f9fa;
-  color: #667eea;
+  color: #0f766e;
 }
 
 /* 错题列表样式 */
@@ -493,7 +487,7 @@ onMounted(() => {
   left: 0;
   width: 6rpx;
   height: 100%;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #0f766e 0%, #115e59 100%);
 }
 
 .question-card:active {

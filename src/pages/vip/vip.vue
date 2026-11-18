@@ -499,7 +499,7 @@ const handleAdClose = async (e: any) => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   padding-bottom: 20px;
 }
 
@@ -589,13 +589,13 @@ const handleAdClose = async (e: any) => {
   padding: 15px;
   background: #f8f9ff;
   border-radius: 12px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #0f766e;
 }
 
 .privilege-icon {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   border-radius: 25px;
   display: flex;
   align-items: center;
@@ -661,7 +661,7 @@ const handleAdClose = async (e: any) => {
 }
 
 .plan-card.active {
-  border-color: #667eea;
+  border-color: #0f766e;
   background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
@@ -704,14 +704,14 @@ const handleAdClose = async (e: any) => {
 
 .price-symbol {
   font-size: 16px;
-  color: #667eea;
+  color: #0f766e;
   font-weight: bold;
 }
 
 .price-amount {
   font-size: 32px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   margin: 0 4px;
 }
 
@@ -782,7 +782,7 @@ const handleAdClose = async (e: any) => {
 }
 
 .checkbox.checked {
-  color: #667eea;
+  color: #0f766e;
 }
 
 .agreement-text {
@@ -860,7 +860,7 @@ const handleAdClose = async (e: any) => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 

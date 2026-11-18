@@ -1,13 +1,7 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">我的收藏</text>
-        <view class="header-right">
-          <text class="filter-icon" @click="showFilterModal = true">筛选</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="showFilterModal = true">筛选</text>
     </view>
 
     <!-- 统计卡片 -->
@@ -459,7 +453,7 @@ onMounted(() => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -517,7 +511,7 @@ onMounted(() => {
   display: block;
   font-size: 24px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   margin-bottom: 5px;
 }
 
@@ -549,7 +543,7 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
@@ -579,7 +573,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -712,7 +706,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -767,8 +761,8 @@ onMounted(() => {
 }
 
 .filter-option.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 </style>

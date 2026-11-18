@@ -1,13 +1,7 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">学习统计</text>
-        <view class="header-right">
-          <text class="refresh-icon" @click="refreshData">刷新</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="refreshData">刷新</text>
     </view>
 
     <!-- 总体统计卡片 -->
@@ -371,7 +365,7 @@ onMounted(() => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -453,7 +447,7 @@ onMounted(() => {
   display: block;
   font-size: 20px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   margin-bottom: 4px;
 }
 
@@ -485,7 +479,7 @@ onMounted(() => {
 }
 
 .time-option.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
@@ -533,7 +527,7 @@ onMounted(() => {
 .subject-progress {
   font-size: 18px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
 }
 
 .progress-bar {
@@ -546,7 +540,7 @@ onMounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #0f766e 0%, #115e59 100%);
   border-radius: 4px;
   transition: width 0.5s ease;
 }
@@ -628,7 +622,7 @@ onMounted(() => {
 .bar-fill {
   width: 20px;
   min-height: 4px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   border-radius: 2px;
   margin-bottom: 8px;
   transition: height 0.5s ease;
@@ -672,7 +666,7 @@ onMounted(() => {
 }
 
 .achievement-item.unlocked {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -793,7 +787,7 @@ onMounted(() => {
 .progress-text {
   font-size: 12px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   min-width: 35px;
 }
 

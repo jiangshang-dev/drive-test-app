@@ -89,6 +89,18 @@ const goToWrongQuestions = async () => {
   })
 }
 
+const goToDaily = () => {
+  uni.navigateTo({ url: '/pages/daily/daily?sub=1' })
+}
+
+const goToKnowledge = () => {
+  uni.navigateTo({ url: '/pages/knowledge/knowledge?sub=1' })
+}
+
+const goToPlan = () => {
+  uni.navigateTo({ url: '/pages/plan/plan' })
+}
+
 // 跳转到我的收藏页面
 const goToFavorites = async () => {
   console.log('跳转到我的收藏')
@@ -317,9 +329,25 @@ const handleLogin = () => {
 
 // 处理个人信息编辑
 const handleProfileEdit = () => {
-  uni.showToast({
-    title: '个人信息编辑',
-    icon: 'none',
+  if (!memberStore.profile) {
+    handleLogin()
+    return
+  }
+  uni.navigateTo({
+    url: '/pages/profile/profile',
+  })
+}
+
+// 退出登录
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定退出登录吗？',
+    success: (res) => {
+      if (!res.confirm) return
+      memberStore.clearProfile()
+      uni.showToast({ title: '已退出登录', icon: 'none' })
+    },
   })
 }
 
@@ -530,47 +558,60 @@ const formatDate = (dateString: any) => {
         <view class="menu-item" @click="goToWrongQuestions">
           <text class="menu-icon">📝</text>
           <text class="menu-title">错题本</text>
-          <text class="menu-count">23</text>
         </view>
         <!-- 我的收藏 -->
         <view class="menu-item" @click="goToFavorites">
           <text class="menu-icon">❤️</text>
           <text class="menu-title">我的收藏</text>
-          <text class="menu-count">156</text>
+        </view>
+        <view class="menu-item" @click="goToDaily">
+          <text class="menu-icon">练</text>
+          <text class="menu-title">每日一练</text>
+        </view>
+        <view class="menu-item" @click="goToKnowledge">
+          <text class="menu-icon">记</text>
+          <text class="menu-title">考点速记</text>
+        </view>
+        <view class="menu-item" @click="goToPlan">
+          <text class="menu-icon">期</text>
+          <text class="menu-title">考试计划</text>
         </view>
         <!-- 学习记录 -->
-        <view class="menu-item" @click="goToStudyRecord" v-if="false">
+        <view class="menu-item" @click="goToStudyRecord">
           <text class="menu-icon">🏆</text>
           <text class="menu-title">学习记录</text>
-          <text class="menu-count">15</text>
         </view>
         <!-- 考试记录 -->
-        <view class="menu-item" @click="goToExamRecord" v-if="false">
+        <view class="menu-item" @click="goToExamRecord">
           <text class="menu-icon">🎯</text>
           <text class="menu-title">考试记录</text>
-          <text class="menu-count">8</text>
         </view>
         <!-- 学习统计 -->
-        <view class="menu-item" @click="goToStatistics" v-if="false">
+        <view class="menu-item" @click="goToStatistics">
           <text class="menu-icon">📊</text>
           <text class="menu-title">学习统计</text>
         </view>
         <!-- 积分商城 -->
-        <view class="menu-item" @click="goToPointsMall" v-if="false">
+        <view class="menu-item" @click="goToPointsMall">
           <text class="menu-icon">🎁</text>
           <text class="menu-title">积分商城</text>
         </view>
         <!-- 会员中心 -->
-        <view class="menu-item" @click="goToMemberCenter" v-if="false">
+        <view class="menu-item" @click="goToMemberCenter">
           <text class="menu-icon">👑</text>
           <text class="menu-title">会员中心</text>
         </view>
         <!-- 我的订单 -->
-        <view class="menu-item" @click="goToOrderList" v-if="false">
+        <view class="menu-item" @click="goToOrderList">
           <text class="menu-icon">📋</text>
           <text class="menu-title">我的订单</text>
         </view>
       </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view v-if="memberStore.profile" class="logout-card">
+      <view class="logout-btn" @click="handleLogout">退出登录</view>
     </view>
 
     <!-- VIP升级弹窗 -->
@@ -672,13 +713,15 @@ const formatDate = (dateString: any) => {
 /* 基础样式 */
 .container {
   min-height: 100vh;
-  background-color: #f5f5f5;
-  padding-bottom: 70px;
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #f3f6f4;
+  padding: 16px 0 70px;
 }
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 20px 0 15px;
   position: fixed;
@@ -712,9 +755,9 @@ const formatDate = (dateString: any) => {
 /* 个人资料卡片 */
 .profile-card {
   margin: 0px 20px 20px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(160deg, #115e59 0%, #0f766e 70%);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.18);
   overflow: hidden;
 }
 
@@ -758,7 +801,7 @@ const formatDate = (dateString: any) => {
 .nickname {
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 .user-level {
@@ -786,24 +829,24 @@ const formatDate = (dateString: any) => {
 
 .level-text {
   font-size: 12px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .phone {
   font-size: 14px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .login-tip {
   font-size: 14px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .upgrade-vip {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f59e0b;
   color: white;
   padding: 8px 10px;
   border-radius: 25px;
@@ -864,7 +907,7 @@ const formatDate = (dateString: any) => {
 }
 
 .change-type-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0f766e;
   color: white;
   border: none;
   padding: 8px 15px;
@@ -918,7 +961,7 @@ const formatDate = (dateString: any) => {
   display: block;
   font-size: 24px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   margin-bottom: 5px;
 }
 
@@ -975,7 +1018,7 @@ const formatDate = (dateString: any) => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #0f766e 0%, #115e59 100%);
   border-radius: 4px;
   transition: width 0.5s ease;
 }
@@ -1066,7 +1109,7 @@ const formatDate = (dateString: any) => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -1144,9 +1187,9 @@ const formatDate = (dateString: any) => {
 }
 
 .plan-item.recommended {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 
 .plan-title {
@@ -1176,7 +1219,7 @@ const formatDate = (dateString: any) => {
 
 .vip-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   padding: 15px;
@@ -1221,12 +1264,28 @@ const formatDate = (dateString: any) => {
 
 .setting-action {
   font-size: 14px;
-  color: #667eea;
+  color: #0f766e;
   cursor: pointer;
 }
 
 .setting-value {
   font-size: 14px;
   color: #666;
+}
+
+.logout-card {
+  margin: 24rpx 0 40rpx;
+}
+
+.logout-btn {
+  height: 92rpx;
+  line-height: 92rpx;
+  text-align: center;
+  background: #ffffff;
+  color: #e54d42;
+  font-size: 30rpx;
+  font-weight: 500;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 </style>

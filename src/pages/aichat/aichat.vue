@@ -188,14 +188,8 @@ onMounted(async () => {
 
 <template>
   <view class="page">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="header-title">AI助手</text>
-        <view class="header-actions">
-          <text class="action-icon" @click="startNewConversation">+</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="startNewConversation">新对话</text>
     </view>
 
     <!-- 聊天内容区域 -->
@@ -277,7 +271,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   height: 44px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   z-index: 1000;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -349,7 +343,7 @@ onMounted(async () => {
 }
 
 .user-message {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -413,7 +407,7 @@ onMounted(async () => {
 }
 
 .send-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   border-radius: 16px;
@@ -480,7 +474,7 @@ onMounted(async () => {
 }
 
 .overlay-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   border-radius: 16px;

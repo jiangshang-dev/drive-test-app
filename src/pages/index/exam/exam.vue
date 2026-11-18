@@ -1,18 +1,8 @@
 <template>
   <view class="page">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">
-          <text v-if="sub == 1">科目一</text>
-          <text v-else-if="sub == 4">科目四</text>
-          模拟考试
-        </text>
-        <view class="header-info">
-          <text class="current-question">{{ currentNo }}/{{ count }}</text>
-          <text class="timer">{{ formattedTime }}</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-info">{{ currentNo }}/{{ count }}</text>
+      <text class="toolbar-info">{{ formattedTime }}</text>
     </view>
 
     <!-- 主要内容区域 -->
@@ -799,7 +789,7 @@ button {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -932,7 +922,7 @@ button {
 }
 
 .directory-item.current {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
   border: 2px solid white;
@@ -1023,7 +1013,7 @@ button {
 }
 
 .option-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
@@ -1055,7 +1045,7 @@ button {
 }
 
 .radio-dot.checked {
-  background: #667eea;
+  background: #0f766e;
 }
 
 .option-item.active .radio-dot.checked {
@@ -1240,7 +1230,7 @@ button {
 }
 
 .question-progress .progress-text {
-  color: #667eea;
+  color: #0f766e;
   font-weight: 600;
 }
 

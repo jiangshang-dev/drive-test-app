@@ -1,13 +1,7 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">交规视频</text>
-        <view class="header-right">
-          <text class="filter-icon" @click="showFilterModal = true">筛选</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="showFilterModal = true">筛选</text>
     </view>
 
     <!-- VIP状态提示 -->
@@ -609,7 +603,7 @@ onLoad(() => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -714,7 +708,7 @@ onLoad(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
@@ -904,7 +898,7 @@ onLoad(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -961,9 +955,9 @@ onLoad(() => {
 }
 
 .filter-option.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 
 /* VIP弹窗样式 */
@@ -1000,7 +994,7 @@ onLoad(() => {
 
 .vip-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   padding: 15px;
@@ -1030,7 +1024,7 @@ onLoad(() => {
 
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   padding: 15px;
@@ -1070,7 +1064,7 @@ onLoad(() => {
 .access-icon {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   border-radius: 25px;
   display: flex;
   align-items: center;

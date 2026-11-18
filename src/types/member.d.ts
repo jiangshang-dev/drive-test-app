@@ -14,6 +14,10 @@ export type LoginResult = {
   token: string
   /** VIP等级 */
   vipLevel?: number
+  /** VIP到期时间 */
+  vipExpireTime?: string
+  /** 积分 */
+  integral?: number
   /** 用户等级 */
   level?: number
 }

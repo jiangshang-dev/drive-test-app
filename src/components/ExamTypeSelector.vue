@@ -170,7 +170,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border-radius: 15px 15px 0 0;
 }
@@ -233,9 +233,9 @@ defineExpose({
 }
 
 .type-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 
 .type-code {
@@ -259,7 +259,7 @@ defineExpose({
 .confirm-btn {
   width: 100%;
   padding: 15px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   border-radius: 10px;

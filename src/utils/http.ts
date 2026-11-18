@@ -35,14 +35,19 @@ const httpInterceptor = {
 uni.addInterceptor('request', httpInterceptor)
 uni.addInterceptor('uploadFile', httpInterceptor)
 
+type HttpOptions = UniApp.RequestOptions & {
+    silent?: boolean
+}
+
 /**
  * 请求函数
  */
-export const http = <T>(options: UniApp.RequestOptions) => {
+export const http = <T>(options: HttpOptions) => {
+    const { silent, ...requestOptions } = options
     // 1 返回 Promise 对象
     return new Promise<Data<T>>((resolve, reject) => {
         uni.request({
-            ...options,
+            ...requestOptions,
             // 2 请求成功
             success(result) {
                 console.log('result:', result);
@@ -58,19 +63,23 @@ export const http = <T>(options: UniApp.RequestOptions) => {
                     uni.navigateTo({ url: '/pages/login/login' })
                     reject(result)
                 } else {
-                    uni.showToast({
-                        icon: 'none',
-                        title: (result.data as Data<T>).msg || '请求失败'
-                    })
+                    if (!silent) {
+                        uni.showToast({
+                            icon: 'none',
+                            title: (result.data as Data<T>).msg || '请求失败'
+                        })
+                    }
                     reject(result)
                 }
             },
             // 响应失败
             fail(error) {
-                uni.showToast({
-                    icon: 'none',
-                    title: '网络错误，换个网络试试'
-                })
+                if (!silent) {
+                    uni.showToast({
+                        icon: 'none',
+                        title: '网络错误，换个网络试试'
+                    })
+                }
                 reject(error)
             }
         })

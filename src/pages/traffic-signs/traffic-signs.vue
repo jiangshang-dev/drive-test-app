@@ -1,13 +1,7 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">交通标志图示详解</text>
-        <view class="header-right">
-          <text class="search-icon" @click="showSearchModal = true">🔍</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-action" @click="showSearchModal = true">搜索</text>
     </view>
 
     <!-- 分类标签 -->
@@ -454,7 +448,7 @@ const loadMore = () => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -516,7 +510,7 @@ const loadMore = () => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
@@ -547,7 +541,7 @@ const loadMore = () => {
   display: block;
   font-size: 24px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
   margin-bottom: 5px;
 }
 
@@ -698,7 +692,7 @@ const loadMore = () => {
 }
 
 .load-more.no-more {
-  color: #667eea;
+  color: #0f766e;
   font-weight: 500;
 }
 
@@ -740,7 +734,7 @@ const loadMore = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 

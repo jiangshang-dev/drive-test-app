@@ -24,6 +24,12 @@
       }
     },
     {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "个人信息"
+      }
+    },
+    {
       "path": "pages/cart/cart",
       "style": {
         "navigationBarTitleText": "购物车"
@@ -144,6 +150,12 @@
       }
     },
     {
+      "path": "pages/mall/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单"
+      }
+    },
+    {
       "path": "pages/order-list/order-list",
       "style": {
         "navigationBarTitleText": "我的订单"
@@ -164,20 +176,38 @@
     {
       "path": "pages/aichat/aichat",
       "style": {
-        "navigationBarTitleText": "题目详情"
+        "navigationBarTitleText": "AI助手"
+      }
+    },
+    {
+      "path": "pages/daily/daily",
+      "style": {
+        "navigationBarTitleText": "每日一练"
+      }
+    },
+    {
+      "path": "pages/knowledge/knowledge",
+      "style": {
+        "navigationBarTitleText": "考点速记"
+      }
+    },
+    {
+      "path": "pages/plan/plan",
+      "style": {
+        "navigationBarTitleText": "考试计划"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "",
-    "navigationBarBackgroundColor": "#667eea",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarBackgroundColor": "#0f766e",
+    "backgroundColor": "#f3f6f4"
   },
   // 设置 TabBar
   "tabBar": {
     "color": "#333",
-    "selectedColor": "#667eea",
+    "selectedColor": "#0f766e",
     "backgroundColor": "#fff",
     "borderStyle": "white",
     "list": [

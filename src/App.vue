@@ -13,6 +13,10 @@ onHide(() => {
 </script>
 
 <style lang="scss">
+page {
+  background: #f3f6f4;
+}
+
 // 字体图标
 @import '@/styles/fonts.scss';
 
@@ -25,6 +29,27 @@ scroll-view {
 
 button::after {
   border: none;
+}
+
+// 统一页面顶部操作栏（标题与返回由原生导航栏统一处理）
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24rpx;
+  padding: 16rpx 30rpx 0;
+}
+
+.toolbar-info {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-right: auto;
+}
+
+.toolbar-action {
+  font-size: 26rpx;
+  color: #0f766e;
+  font-weight: 500;
 }
 
 swiper,

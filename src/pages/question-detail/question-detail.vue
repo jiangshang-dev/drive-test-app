@@ -1,19 +1,9 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-left" @click="goBack">
-        <text class="back-icon">←</text>
-        <text class="back-text">返回</text>
-      </view>
-      <view class="header-center">
-        <text class="title">题目详情</text>
-      </view>
-      <view class="header-right">
-        <text class="favorite-icon" :class="{ favorited: isFavorited }" @click="toggleFavorite">
-          {{ isFavorited ? '❤️' : '🤍' }}
-        </text>
-      </view>
+    <view class="page-toolbar">
+      <text class="favorite-icon" :class="{ favorited: isFavorited }" @click="toggleFavorite">
+        {{ isFavorited ? '❤️' : '🤍' }}
+      </text>
     </view>
 
     <!-- 主要内容区域 -->
@@ -357,7 +347,7 @@ onLoad((options: any) => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 15px;
   position: fixed;
@@ -512,7 +502,7 @@ onLoad((options: any) => {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #667eea;
+  background: #0f766e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -652,7 +642,7 @@ onLoad((options: any) => {
 
 .section-header {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -684,7 +674,7 @@ onLoad((options: any) => {
 
 .related-number {
   font-size: 12px;
-  color: #667eea;
+  color: #0f766e;
   font-weight: bold;
   margin-right: 10px;
   min-width: 50px;

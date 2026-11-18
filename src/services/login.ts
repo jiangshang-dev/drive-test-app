@@ -30,6 +30,29 @@ export const postLoginWxAppAPI = (data: LoginAppParams) => {
     })
 }
 
+// 用户名密码登录
+export const postUsernameLoginAPI = (username: string, password: string) => {
+    return http<LoginResult>({
+        method: 'POST',
+        url: '/login/username',
+        data: { username, password }
+    })
+}
+
+// 用户名密码注册
+export const postRegisterAPI = (data: {
+    username: string
+    password: string
+    confirmPassword: string
+    mobile?: string
+}) => {
+    return http<LoginResult>({
+        method: 'POST',
+        url: '/login/register',
+        data
+    })
+}
+
 // 发送验证码
 export const postSendVerifyCodeAPI = (mobile: string) => {
     return http<LoginResult>({

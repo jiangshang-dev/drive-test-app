@@ -1,16 +1,8 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <view class="header-title">
-          <text class="logo">{{ sub == 1 ? '科目一' : '科目四' }}刷题</text>
-          <text class="progress-text">{{ currentNo }} / {{ count }}</text>
-        </view>
-        <view class="header-right">
-          <text class="filter-icon" @click="showFilterModal = true">筛选</text>
-        </view>
-      </view>
+    <view class="page-toolbar">
+      <text class="toolbar-info">{{ currentNo }} / {{ count }}</text>
+      <text class="toolbar-action" @click="showFilterModal = true">筛选</text>
     </view>
 
     <!-- 题型筛选栏 -->
@@ -286,7 +278,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, watch } from 'vue'
 import { http } from '@/utils/http'
 import { useMemberStore } from '@/stores'
-import { buildUrlWithExamType } from '@/utils/examTypeHelper'
+import { buildUrlWithExamType, getCurrentExamType } from '@/utils/examTypeHelper'
 
 // 定义题型数据接口
 interface QuestionType {
@@ -416,10 +408,41 @@ const checkLogin = () => {
   return true
 }
 
+const progressStorageKey = (subject: number | string, questionType: string = '') => {
+  return `practice_progress_${subject}_${getCurrentExamType()}_${questionType || 'all'}`
+}
+
+let progressTimer: ReturnType<typeof setTimeout> | null = null
+watch(currentQuestionIndex, (idx) => {
+  if (!questions.value.length) return
+  uni.setStorageSync(progressStorageKey(sub.value, selectedQuestionType.value), idx)
+  const memberStore = useMemberStore()
+  if (!memberStore.profile?.id) return
+  if (progressTimer) clearTimeout(progressTimer)
+  progressTimer = setTimeout(() => {
+    http({
+      url: '/study/progress',
+      method: 'POST',
+      silent: true,
+      data: {
+        subject: Number(sub.value),
+        examType: getCurrentExamType(),
+        questionType: selectedQuestionType.value || '',
+        lastIndex: idx,
+        answeredCount: idx,
+        correctCount: 0,
+      },
+    }).catch(() => {})
+  }, 800)
+})
+
 onLoad((options: any) => {
   sub.value = options?.sub || 0
+  if (options?.questionType) {
+    selectedQuestionType.value = options.questionType
+  }
   console.log('sub.value---', sub.value)
-  getData(sub.value)
+  getData(sub.value, selectedQuestionType.value)
   getDictType()
   initComments() // 初始化评论数据
 })
@@ -439,12 +462,14 @@ const getData = async (subject: number, questionType: string = '') => {
     method: 'GET',
   })
   console.log('res-', res.data)
-  questions.value = res.data || [] // 假设API返回的数据结构包含题目列表
+  const list = Array.isArray(res?.data) ? res.data : []
+  questions.value = list
   // 总数
-  questionsTotal.value = res.data.length
-  count.value = res.data?.length || 0
-  userAnswers.value = new Array(res.data?.length || 0).fill('') // 初始化用户答案数组
-  currentQuestionIndex.value = 0 // 重置题目索引
+  questionsTotal.value = list.length
+  count.value = list.length
+  userAnswers.value = new Array(list.length).fill('') // 初始化用户答案数组
+  const savedIndex = Number(uni.getStorageSync(progressStorageKey(subject, questionType)) || 0)
+  currentQuestionIndex.value = savedIndex > 0 && savedIndex < list.length ? savedIndex : 0
   showAnswer.value = false // 隐藏答案
 
   // 清空收藏状态
@@ -1070,7 +1095,7 @@ const closeDirectory = () => {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -1144,9 +1169,9 @@ const closeDirectory = () => {
 }
 
 .filter-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 
 /* 题目卡片 */
@@ -1163,7 +1188,7 @@ const closeDirectory = () => {
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -1286,7 +1311,7 @@ const closeDirectory = () => {
 .option-letter {
   width: 30px;
   height: 30px;
-  background: #667eea;
+  background: #0f766e;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1467,17 +1492,17 @@ const closeDirectory = () => {
 
 .btn-outline {
   background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #0f766e;
+  border: 2px solid #0f766e;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: #667eea;
+  background: #0f766e;
   color: white;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -1540,7 +1565,7 @@ const closeDirectory = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -1592,9 +1617,9 @@ const closeDirectory = () => {
 }
 
 .type-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
-  border-color: #667eea;
+  border-color: #0f766e;
 }
 
 .type-icon {
@@ -1643,7 +1668,7 @@ const closeDirectory = () => {
 
 .sort-btn {
   font-size: 12px;
-  color: #667eea;
+  color: #0f766e;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1681,7 +1706,7 @@ const closeDirectory = () => {
 }
 
 .comment-input:focus {
-  border-color: #667eea;
+  border-color: #0f766e;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
 }
 
@@ -1695,7 +1720,7 @@ const closeDirectory = () => {
 
 .submit-btn {
   padding: 12px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1828,7 +1853,7 @@ const closeDirectory = () => {
 }
 
 .reply-author {
-  color: #667eea;
+  color: #0f766e;
   font-weight: 600;
   margin-right: 5px;
 }
@@ -1947,7 +1972,7 @@ const closeDirectory = () => {
 }
 
 .directory-item.current {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
   border: 2px solid white;
@@ -1979,7 +2004,7 @@ const closeDirectory = () => {
   transition: all 0.3s ease;
   border: none;
   text-align: center;
-  background: #667eea;
+  background: #0f766e;
   color: white;
   margin-right: 10px;
 }

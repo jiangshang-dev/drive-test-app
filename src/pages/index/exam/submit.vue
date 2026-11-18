@@ -1,15 +1,5 @@
 <template>
   <view class="page">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-content">
-        <text class="logo">考试结果</text>
-        <view class="header-right">
-          <text class="back-btn" @click="goBack">返回</text>
-        </view>
-      </view>
-    </view>
-
     <!-- 主要内容区域 -->
     <view class="main-content">
       <!-- 成绩卡片 -->
@@ -229,6 +219,7 @@
 import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import uniPopup from '@dcloudio/uni-ui/lib/uni-popup/uni-popup.vue'
+import { http } from '@/utils/http'
 
 // 定义题目接口
 interface Question {
@@ -303,6 +294,7 @@ onLoad((options: any) => {
     ]
   })
   updateVisibleQuestions()
+  http({ url: '/mall/points/grant', method: 'POST', silent: true, data: { scene: 'MOCK_EXAM' } }).catch(() => {})
 })
 
 // 跳转到指定题目
@@ -407,7 +399,7 @@ button {
 
 /* 顶部导航栏 */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 8px 0 8px;
   position: fixed;
@@ -469,7 +461,7 @@ button {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
 }
 
 .score-header {
@@ -514,7 +506,7 @@ button {
 .score-number {
   font-size: 48px;
   font-weight: bold;
-  color: #667eea;
+  color: #0f766e;
 }
 
 .score-divider {
@@ -648,7 +640,7 @@ button {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
 }
 
@@ -697,7 +689,7 @@ button {
 }
 
 .modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   color: white;
   padding: 20px;
   display: flex;
@@ -842,7 +834,7 @@ button {
 .opt ion-letter {
   font-weight: bold;
   margin-right: 10px;
-  color: #667eea;
+  color: #0f766e;
 }
 
 .option-text {
